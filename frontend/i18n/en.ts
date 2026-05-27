@@ -1,0 +1,287 @@
+import { Translation } from './pt';
+
+export const en: Translation = {
+  // Login
+  login: {
+    title: 'Welcome',
+    subtitle: 'Discipleship Management System',
+    email: 'Email',
+    password: 'Password',
+    button: 'Sign In',
+    error: 'Invalid email or password',
+  },
+  
+  // Menu
+  menu: {
+    dashboard: 'Overview',
+    analytics: 'Visual Analytics',
+    pastors: 'Pastors',
+    leaders: 'Leaders',
+    disciples: 'Disciples',
+    tools: 'Tools',
+    study: 'Prepare Study',
+    darkMode: 'Dark Mode',
+    lightMode: 'Light Mode',
+    logout: 'Sign Out',
+  },
+  
+  // Dashboard
+  dashboard: {
+    title: 'Control Panel',
+    statistics: 'Main Statistics',
+    totalUsers: 'Total Users',
+    leaders: 'Leaders',
+    disciples: 'Disciples',
+    active: 'Active',
+    baptized: 'Baptized',
+    notBaptized: 'Not Baptized',
+    universityOfLife: 'University of Life',
+    destination1: 'Destination 1',
+    destination2: 'Destination 2',
+    destination3: 'Destination 3',
+    hierarchy: 'Hierarchy',
+    pastor: 'Pastor',
+    leader: 'Leader',
+    disciple: 'Disciple',
+    
+    // Statistics
+    g12Disciples: 'G12 Disciples',
+    cellDisciples: 'Cell Disciples',
+    disciples144: '144 Disciples',
+    allDisciples: 'All Disciples',
+    
+    // Growth Track
+    growthTrack: 'Growth Track',
+    uv: 'UL',
+    notStartedUV: 'Not Started UL',
+    cd1: 'DT 1',
+    cd2: 'DT 2',
+    cd3: 'DT 3',
+    notStartedCD: 'Not Started DT',
+    
+    // Personal Filters
+    personalFilters: 'Personal Filters',
+    men: 'Men',
+    women: 'Women',
+    children: 'Children (0-12)',
+    teens: 'Teens (13-17)',
+    young: 'Young (18-25)',
+    adults: 'Adults (26-40)',
+    middleAge: 'Middle Age (41-60)',
+    seniors: 'Seniors (60+)',
+    
+    // Details and listing
+    details: 'Details',
+    memberList: 'Member List',
+    showingPeople: 'Showing',
+    peopleWithFilters: 'people with filters applied',
+    clickCardMessage: 'Click on a card above or use filters to see the details',
+    clearAll: 'Clear All',
+    noPersonFound: 'No person found with the selected filters.',
+    selectStatMessage: 'Select a statistic or filter above to view the list.',
+    visualAnalysis: 'Visual Analysis',
+    detailedIndicators: 'Detailed indicators and charts of your network.',
+    discipleManagement: 'Disciple Management',
+    manageNetwork: 'Manage the members of your network here.',
+  },
+  
+  // Analytics Charts
+  charts: {
+    noDataAvailable: 'Not enough data to generate charts.',
+    totalGeneral: 'Total Overall',
+    averageAge: 'Average Age',
+    activity: 'Activity',
+    active: 'Active',
+    genderDistribution: 'Gender Distribution',
+    men: 'Men',
+    women: 'Women',
+    people: 'people',
+    baptismStatus: 'Baptism Status',
+    uvCompletion: 'University of Life Completion',
+    completedUV: 'Completed UL',
+    notCompleted: 'Not Completed',
+    cdLevels: 'Destination Training (%)',
+    completion: 'Completion',
+  },
+  
+  // Form
+  form: {
+    birth: 'Birth',
+    gender: 'Gender',
+    male: 'Male',
+    female: 'Female',
+    hierarchy: 'Hierarchy',
+    selectOption: 'Select...',
+    ecclesialLife: 'Ecclesial Life',
+    activityLevel: 'Activity Level',
+    left: 'Left',
+    extremelyActive: 'Ext. Active',
+    baptized: 'Baptized',
+    yes: 'Yes',
+    no: 'No',
+    universityOfLife: 'University of Life',
+    inProgress: 'In Progress',
+    destinationTraining: 'Destination Training',
+    notStarted: 'Not Started',
+    level1: 'Level 1',
+    level2: 'Level 2',
+    level3: 'Level 3',
+    completed: 'Completed',
+    ministry: 'Ministry',
+    ministryExample: 'Ex: Worship',
+    leadershipExample: 'Ex: Leadership',
+    leadership: 'Leadership',
+    cancel: 'Cancel',
+    saveRecord: 'Save Record',
+  },
+  
+  // Messages and Labels
+  messages: {
+    loading: 'Loading...',
+    loginError: 'Incorrect email or password. Please try again.',
+    saveError: 'Error saving user. Please try again.',
+    emailLabel: 'Email (Login Access)',
+    emailPlaceholder: 'email@example.com',
+    namePlaceholder: 'Ex: John Silva',
+    phonePlaceholder: '(11) 99999-9999',
+  },
+  
+  // Activity Labels
+  activityLabels: {
+    leftChurch: 'Left Church',
+    inactive: 'Inactive',
+    neutral: 'Neutral',
+    active: 'Active',
+    extremelyActive: 'Extremely Active',
+  },
+  
+  // Tooltips
+  tooltips: {
+    viewFullNetwork: 'View Full Network',
+  },
+  
+  // Users
+  users: {
+    title: 'User Management',
+    add: 'Add User',
+    edit: 'Edit User',
+    delete: 'Delete',
+    search: 'Search by name, email or phone...',
+    name: 'Name',
+    email: 'Email',
+    phone: 'Phone',
+    role: 'Role',
+    gender: 'Gender',
+    birthdate: 'Birthdate',
+    ministry: 'Ministry',
+    activity: 'Activity Level',
+    baptized: 'Baptized',
+    g12: 'G12',
+    universityOfLife: 'University of Life',
+    destination: 'Destination Training',
+    supervisor: 'Supervisor',
+    male: 'Male',
+    female: 'Female',
+    yes: 'Yes',
+    no: 'No',
+    save: 'Save',
+    cancel: 'Cancel',
+    member: 'Member',
+    noEmail: 'No email',
+    noContact: 'No contact',
+    sup: 'Sup',
+    activityLevel: 'Activity',
+    age: 'Age',
+    years: 'years',
+    activityLevels: {
+      left: 'Left',
+      inactive: 'Inactive',
+      neutral: 'Neutral',
+      active: 'Active',
+      veryActive: 'Very Active',
+    },
+  },
+  
+  // Disciples
+  disciples: {
+    title: 'My Disciples',
+    myNetwork: 'My Network',
+    total: 'Total Disciples',
+    active: 'Active',
+    inactive: 'Inactive',
+    filters: 'Filters',
+    gender: 'Gender',
+    age: 'Age',
+    young: 'Young (18-30)',
+    adult: 'Adults (31-50)',
+    senior: 'Seniors (51+)',
+    clearFilters: 'Clear Filters',
+  },
+  
+  // Study
+  study: {
+    title: 'Study Preparation',
+    subtitle: 'Generate cell plans and bible studies instantly.',
+    generate: 'Generate Plan',
+    generating: 'Generating...',
+    theme: 'Theme',
+    themePlaceholder: 'e.g.: How to overcome fear in faith',
+    reference: 'Biblical Reference',
+    referencePlaceholder: 'e.g.: John 3:16, Psalms 23...',
+    language: 'Language',
+    portuguese: 'Portuguese',
+    spanish: 'Spanish',
+    english: 'English',
+    copy: 'Copy Text',
+    copied: 'Copied!',
+    print: 'Print / Save PDF',
+    successTitle: 'Study Generated Successfully',
+    errorMessage: 'An error occurred while connecting to the AI service. Check your API key.',
+    emptyTheme: 'Please enter a theme to generate the study.',
+  },
+  
+  // Roles
+  roles: {
+    PASTOR: 'Pastor',
+    LIDER: 'Leader',
+    DISCIPULO: 'Disciple',
+  },
+  
+  // Common
+  common: {
+    close: 'Close',
+    loading: 'Loading...',
+    error: 'Error',
+    success: 'Success',
+    confirm: 'Confirm',
+    password: 'Password',
+    hello: 'Hello',
+    welcomeMessage: 'Here is the summary of your network today.',
+    backToList: 'Back to list',
+    addNew: 'Add New',
+    fullName: 'Full Name',
+    position: 'Position',
+    supervision: 'Supervision',
+    actions: 'Actions',
+    action: 'Action',
+    viewing: 'Viewing',
+    filterByName: 'Filter by name...',
+    downloadTemplate: 'Download Template',
+  },
+
+  // Pages
+  pages: {
+    leaders: {
+      title: 'Leaders Management',
+      subtitle: 'Manage the leaders of your network.',
+      cellOf: 'Cell of',
+      viewingDisciples: 'disciples.',
+    },
+    pastors: {
+      title: 'Pastors Management',
+      subtitle: 'Manage the pastors of your network.',
+      networkOf: 'Network of',
+      viewingDisciples: 'disciples (Direct and Indirect).',
+    },
+  },
+};

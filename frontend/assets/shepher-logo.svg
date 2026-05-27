@@ -1,0 +1,124 @@
+<svg width="768" height="768" viewBox="0 0 768 768" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Logo Shepher">
+  <rect width="768" height="768" fill="#000000"/>
+
+  <!-- Staff -->
+  <path d="M575 190a36 36 0 1 0 -46 34" fill="none" stroke="#ffffff" stroke-width="12" stroke-linecap="round"/>
+  <path d="M538 214L618 533" fill="none" stroke="#ffffff" stroke-width="12" stroke-linecap="round"/>
+
+  <!-- Base arc -->
+  <path d="M185 533C264 507 501 504 599 532" fill="none" stroke="#ffffff" stroke-width="9" stroke-linecap="round"/>
+
+  <!-- Ram silhouette (stylized to match reference) -->
+  <ellipse cx="359" cy="378" rx="123" ry="106" fill="#ffffff"/>
+  <ellipse cx="434" cy="392" rx="117" ry="92" fill="#ffffff"/>
+  <ellipse cx="397" cy="430" rx="96" ry="56" fill="#000000"/>
+  <ellipse cx="326" cy="403" rx="84" ry="74" fill="#000000"/>
+
+  <!-- Legs -->
+  <rect x="289" y="429" width="27" height="85" rx="3" fill="#ffffff"/>
+  <rect x="332" y="432" width="28" height="82" rx="3" fill="#ffffff"/>
+  <rect x="430" y="438" width="28" height="76" rx="3" fill="#ffffff"/>
+  <rect x="473" y="444" width="26" height="70" rx="3" fill="#ffffff"/>
+
+  <!-- Neck and head -->
+  <path d="M352 308C380 277 437 272 470 305C486 322 491 340 485 359C472 357 456 352 442 343C431 352 418 359 404 364C379 354 362 336 352 308Z" fill="#ffffff"/>
+  <path d="M454 320C445 315 431 315 418 323" fill="none" stroke="#000000" stroke-width="6" stroke-linecap="round"/>
+  <circle cx="443" cy="331" r="3.5" fill="#000000"/>
+
+  <!-- Horn rings -->
+  <circle cx="325" cy="298" r="48" fill="none" stroke="#ffffff" stroke-width="11"/>
+  <circle cx="325" cy="298" r="30" fill="none" stroke="#ffffff" stroke-width="10"/>
+  <path d="M325 286C340 286 351 297 351 311C351 324 340 334 326 334C313 334 303 326 301 315" fill="none" stroke="#ffffff" stroke-width="9" stroke-linecap="round"/>
+  <path d="M322 314C315 315 310 321 310 327C310 334 316 339 323 339C329 339 334 335 334 329C334 324 331 320 327 319" fill="none" stroke="#ffffff" stroke-width="7" stroke-linecap="round"/>
+
+  <!-- Body highlight cuts -->
+  <path d="M248 338C252 318 265 301 287 289" fill="none" stroke="#000000" stroke-width="8" stroke-linecap="round"/>
+  <path d="M255 406C256 435 272 456 301 468" fill="none" stroke="#000000" stroke-width="8" stroke-linecap="round"/>
+  <path d="M421 447C431 436 438 421 440 402" fill="none" stroke="#000000" stroke-width="8" stroke-linecap="round"/>
+  <path d="M483 424C491 405 494 385 488 366" fill="none" stroke="#000000" stroke-width="8" stroke-linecap="round"/>
+
+  <!-- Brand text -->
+  <svg
+  xmlns="http://www.w3.org/2000/svg"
+  viewBox="0 0 200 180"
+  width="200"
+  height="180"
+>
+  <defs>
+    <style>
+      .shepher-text {
+        font-family: "Times New Roman", Times, serif;
+        font-size: 24px;
+        font-weight: bold;
+        fill: currentColor;
+      }
+      .shepher-logo-path {
+        fill: currentColor;
+        stroke: currentColor;
+        stroke-width: 0.5;
+        stroke-linejoin: round;
+      }
+    </style>
+  </defs>
+  <g transform="translate(5, 5)">
+    <!-- Shepherd's Crook -->
+    <path
+      d="M150,20 A20,20 0 1,1 150,60 L150,65 L130,65 A20,20 0 1,0 130,20 L140,20 M140,65 L140,130 L165,145 L170,130 L145,120 L145,65"
+      fill="currentColor"
+      stroke-width="0"
+    />
+
+    <!-- Ram Body -->
+    <path
+      d="M80,50
+         C 40,50 30,90 50,115
+         C 55,125 90,135 120,125
+         L 125,100
+         C 110,115 90,110 85,100
+         C 80,90 85,70 100,65
+         L 95,50 Z"
+      class="shepher-logo-path"
+    />
+
+    <!-- Ram Head -->
+    <path
+      d="M100,65
+         C 110,60 120,65 125,75
+         L 130,70
+         C 125,60 110,55 100,65
+         L 95,50
+         C 105,45 115,50 120,60
+         L 125,70
+         C 115,75 105,75 100,65"
+      class="shepher-logo-path"
+    />
+    <path d="M118 68 A 2 2 0 0 1 122 68" fill="currentColor" />
+
+    <!-- Ram Horns -->
+    <path
+      d="M95,50
+         C 85,40 80,30 90,25
+         C 100,20 110,30 105,40
+         C 100,50 95,50 95,50 M93,48 C85,40 82,32 90,28 C98,25 105,32 102,40"
+      class="shepher-logo-path"
+    />
+
+    <!-- Ram Legs -->
+    <path d="M70,115 L70,135 L65,135 L65,115 Z" class="shepher-logo-path" />
+    <path d="M85,120 L85,140 L80,140 L80,120 Z" class="shepher-logo-path" />
+    <path d="M100,125 L100,145 L95,145 L95,125 Z" class="shepher-logo-path" />
+    <path d="M115,125 L115,140 L110,140 L110,125 Z" class="shepher-logo-path" />
+
+    <!-- Ground -->
+    <path
+      d="M30,145 C 80,160 130,160 180,145 C 170,150 100,155 40,150 Z"
+      fill="currentColor"
+      stroke-width="0"
+    />
+
+    <!-- Text -->
+    <text x="35" y="170" class="shepher-text">SHEPHER</text>
+  </g>
+</svg>
+
+</svg>

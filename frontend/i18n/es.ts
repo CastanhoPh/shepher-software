@@ -1,0 +1,287 @@
+import { Translation } from './pt';
+
+export const es: Translation = {
+  // Login
+  login: {
+    title: 'Bienvenido',
+    subtitle: 'Sistema de Gestión de Discipulado',
+    email: 'Correo electrónico',
+    password: 'Contraseña',
+    button: 'Entrar',
+    error: 'Correo electrónico o contraseña inválidos',
+  },
+  
+  // Menu
+  menu: {
+    dashboard: 'Visión General',
+    analytics: 'Análisis Visual',
+    pastors: 'Pastores',
+    leaders: 'Líderes',
+    disciples: 'Discípulos',
+    tools: 'Herramientas',
+    study: 'Preparar Estudio',
+    darkMode: 'Modo Oscuro',
+    lightMode: 'Modo Claro',
+    logout: 'Cerrar sesión',
+  },
+  
+  // Dashboard
+  dashboard: {
+    title: 'Panel de Control',
+    statistics: 'Estadísticas Principales',
+    totalUsers: 'Total de Usuarios',
+    leaders: 'Líderes',
+    disciples: 'Discípulos',
+    active: 'Ativos',
+    baptized: 'Bautizados',
+    notBaptized: 'No Bautizados',
+    universityOfLife: 'Universidad de la Vida',
+    destination1: 'Destino 1',
+    destination2: 'Destino 2',
+    destination3: 'Destino 3',
+    hierarchy: 'Jerarquía',
+    pastor: 'Pastor',
+    leader: 'Líder',
+    disciple: 'Discípulo',
+    
+    // Estadísticas
+    g12Disciples: 'Discípulos G12',
+    cellDisciples: 'Discípulos de Célula',
+    disciples144: 'Discípulos 144',
+    allDisciples: 'Todos los Discípulos',
+    
+    // Trilha de Crescimento
+    growthTrack: 'Camino de Crecimiento',
+    uv: 'UV',
+    notStartedUV: 'No Inició UV',
+    cd1: 'CD 1',
+    cd2: 'CD 2',
+    cd3: 'CD 3',
+    notStartedCD: 'No Inició CD',
+    
+    // Filtros Pessoais
+    personalFilters: 'Filtros Personales',
+    men: 'Hombres',
+    women: 'Mujeres',
+    children: 'Niños (0-12)',
+    teens: 'Adolescentes (13-17)',
+    young: 'Jóvenes (18-25)',
+    adults: 'Adultos (26-40)',
+    middleAge: 'Edad Media (41-60)',
+    seniors: 'Mayores (60+)',
+    
+    // Detalles y listado
+    details: 'Detalles',
+    memberList: 'Lista de Miembros',
+    showingPeople: 'Mostrando',
+    peopleWithFilters: 'personas con filtros aplicados',
+    clickCardMessage: 'Haz clic en una tarjeta arriba o usa filtros para ver los detalles',
+    clearAll: 'Limpiar Todo',
+    noPersonFound: 'No se encontró ninguna persona con los filtros seleccionados.',
+    selectStatMessage: 'Seleccione una estadística o filtro arriba para visualizar la lista.',
+    visualAnalysis: 'Análisis Visual',
+    detailedIndicators: 'Indicadores y gráficos detalhados de su red.',
+    discipleManagement: 'Gestión de Discípulos',
+    manageNetwork: 'Gestione los miembros de su red aquí.',
+  },
+  
+  // Analytics Charts
+  charts: {
+    noDataAvailable: 'Sin datos suficientes para generar gráficos.',
+    totalGeneral: 'Total General',
+    averageAge: 'Edad Promedio',
+    activity: 'Actividad',
+    active: 'Activos',
+    genderDistribution: 'Distribución de Género',
+    men: 'Hombres',
+    women: 'Mujeres',
+    people: 'personas',
+    baptismStatus: 'Estado de Bautismo',
+    uvCompletion: 'Conclusión Universidad de la Vida',
+    completedUV: 'Completó UV',
+    notCompleted: 'No Completó',
+    cdLevels: 'Capacitación de Destino (%)',
+    completion: 'Conclusión',
+  },
+  
+  // Form
+  form: {
+    birth: 'Nacimiento',
+    gender: 'Sexo',
+    male: 'Masculino',
+    female: 'Femenino',
+    hierarchy: 'Jerarquía',
+    selectOption: 'Seleccione...',
+    ecclesialLife: 'Vida Eclesiástica',
+    activityLevel: 'Nivel de Actividad',
+    left: 'Salió',
+    extremelyActive: 'Ext. Activo',
+    baptized: 'Bautizado',
+    yes: 'Sí',
+    no: 'No',
+    universityOfLife: 'Universidad de la Vida',
+    inProgress: 'Cursando',
+    destinationTraining: 'Capacitación de Destino',
+    notStarted: 'No Inició',
+    level1: 'Nivel 1',
+    level2: 'Nivel 2',
+    level3: 'Nivel 3',
+    completed: 'Completado',
+    ministry: 'Ministerio',
+    ministryExample: 'Ej: Alabanza',
+    leadershipExample: 'Ej: Liderazgo',
+    leadership: 'Liderazgo',
+    cancel: 'Cancelar',
+    saveRecord: 'Guardar Registro',
+  },
+  
+  // Messages and Labels
+  messages: {
+    loading: 'Cargando...',
+    loginError: 'Email o contraseña incorrectos. Intente nuevamente.',
+    saveError: 'Error al guardar usuario. Intente nuevamente.',
+    emailLabel: 'Email (Acceso de Login)',
+    emailPlaceholder: 'email@ejemplo.com',
+    namePlaceholder: 'Ej: Juan da Silva',
+    phonePlaceholder: '(11) 99999-9999',
+  },
+  
+  // Activity Labels
+  activityLabels: {
+    leftChurch: 'Salió de la Iglesia',
+    inactive: 'Inactivo',
+    neutral: 'Neutro',
+    active: 'Activo',
+    extremelyActive: 'Extremadamente Activo',
+  },
+  
+  // Tooltips
+  tooltips: {
+    viewFullNetwork: 'Ver Red Completa',
+  },
+  
+  // Users
+  users: {
+    title: 'Gestão de Usuários',
+    add: 'Agregar Usuario',
+    edit: 'Editar Usuario',
+    delete: 'Eliminar',
+    search: 'Buscar por nombre, correo o teléfono...',
+    name: 'Nombre',
+    email: 'Correo electrónico',
+    phone: 'Teléfono',
+    role: 'Função',
+    gender: 'Género',
+    birthdate: 'Fecha de Nacimiento',
+    ministry: 'Ministerio',
+    activity: 'Nivel de Actividad',
+    baptized: 'Bautizado',
+    g12: 'G12',
+    universityOfLife: 'Universidad de la Vida',
+    destination: 'Capacitación Destino',
+    supervisor: 'Supervisor',
+    male: 'Masculino',
+    female: 'Femenino',
+    yes: 'Sí',
+    no: 'No',
+    save: 'Guardar',
+    cancel: 'Cancelar',
+    member: 'Miembro',
+    noEmail: 'Sin correo',
+    noContact: 'Sin contacto',
+    sup: 'Sup',
+    activityLevel: 'Actividad',
+    age: 'Edad',
+    years: 'años',
+    activityLevels: {
+      left: 'Salió',
+      inactive: 'Inactivo',
+      neutral: 'Neutral',
+      active: 'Activo',
+      veryActive: 'Muy Activo',
+    },
+  },
+  
+  // Disciples
+  disciples: {
+    title: 'Mis Discípulos',
+    myNetwork: 'Mi Red',
+    total: 'Total de Discípulos',
+    active: 'Activos',
+    inactive: 'Inactivos',
+    filters: 'Filtros',
+    gender: 'Género',
+    age: 'Edad',
+    young: 'Jóvenes (18-30)',
+    adult: 'Adultos (31-50)',
+    senior: 'Mayores (51+)',
+    clearFilters: 'Limpar Filtros',
+  },
+  
+  // Study
+  study: {
+    title: 'Preparación de Estudio',
+    subtitle: 'Genere planes de célula y estudios bíblicos instantáneamente.',
+    generate: 'Generar Plan',
+    generating: 'Generando...',
+    theme: 'Tema',
+    themePlaceholder: 'Ej: Cómo vencer el miedo en la fe',
+    reference: 'Referência Bíblica',
+    referencePlaceholder: 'Ej: Juan 3:16, Salmos 23...',
+    language: 'Idioma',
+    portuguese: 'Portugués',
+    spanish: 'Español',
+    english: 'Inglés',
+    copy: 'Copiar Texto',
+    copied: '¡Copiado!',
+    print: 'Imprimir / Guardar PDF',
+    successTitle: 'Estudio Generado con Éxito',
+    errorMessage: 'Ocorreu um erro ao conectar com o serviço de IA. Verifique sua chave de API.',
+    emptyTheme: 'Por favor, ingrese un tema para generar el estudio.',
+  },
+  
+  // Roles
+  roles: {
+    PASTOR: 'Pastor',
+    LIDER: 'Líder',
+    DISCIPULO: 'Discípulo',
+  },
+  
+  // Common
+  common: {
+    close: 'Cerrar',
+    loading: 'Cargando...',
+    error: 'Error',
+    success: 'Éxito',
+    confirm: 'Confirmar',
+    password: 'Contraseña',
+    hello: 'Hola',
+    welcomeMessage: 'Aquí está el resumen de tu red hoy.',
+    backToList: 'Volver a la lista',
+    addNew: 'Agregar Nuevo',
+    fullName: 'Nombre Completo',
+    position: 'Posición',
+    supervision: 'Supervisión',
+    actions: 'Acciones',
+    action: 'Acción',
+    viewing: 'Visualizando',
+    filterByName: 'Filtrar por nombre...',
+    downloadTemplate: 'Descargar Modelo',
+  },
+
+  // Pages
+  pages: {
+    leaders: {
+      title: 'Gestión de Líderes',
+      subtitle: 'Gestiona los líderes de tu red.',
+      cellOf: 'Célula de',
+      viewingDisciples: 'discípulos.',
+    },
+    pastors: {
+      title: 'Gestión de Pastores',
+      subtitle: 'Gestiona los pastores de tu red.',
+      networkOf: 'Red de',
+      viewingDisciples: 'discípulos (Directos e Indirectos).',
+    },
+  },
+};

@@ -1,0 +1,287 @@
+export const pt = {
+  // Login
+  login: {
+    title: 'Bem-vindo',
+    subtitle: 'Sistema de Gestão de Discipulado',
+    email: 'E-mail',
+    password: 'Senha',
+    button: 'Entrar',
+    error: 'E-mail ou senha inválidos',
+  },
+  
+  // Menu
+  menu: {
+    dashboard: 'Visão Geral',
+    analytics: 'Análise Visual',
+    pastors: 'Pastores',
+    leaders: 'Líderes',
+    disciples: 'Discípulos',
+    tools: 'Ferramentas',
+    study: 'Preparar Estudo',
+    darkMode: 'Modo Escuro',
+    lightMode: 'Modo Claro',
+    logout: 'Sair da conta',
+  },
+  
+  // Dashboard
+  dashboard: {
+    title: 'Painel de Controle',
+    statistics: 'Estatísticas Principais',
+    totalUsers: 'Total de Usuários',
+    leaders: 'Líderes',
+    disciples: 'Discípulos',
+    active: 'Ativos',
+    baptized: 'Batizados',
+    notBaptized: 'Não Batizados',
+    universityOfLife: 'Universidade da Vida',
+    destination1: 'Destino 1',
+    destination2: 'Destino 2',
+    destination3: 'Destino 3',
+    hierarchy: 'Hierarquia',
+    pastor: 'Pastor',
+    leader: 'Líder',
+    disciple: 'Discípulo',
+    
+    // Estatísticas
+    g12Disciples: 'Discípulos G12',
+    cellDisciples: 'Discípulos de Célula',
+    disciples144: 'Discípulos 144',
+    allDisciples: 'Todos os Discípulos',
+    
+    // Trilha de Crescimento
+    growthTrack: 'Trilha de Crescimento',
+    uv: 'UV',
+    notStartedUV: 'Não Iniciou UV',
+    cd1: 'CD 1',
+    cd2: 'CD 2',
+    cd3: 'CD 3',
+    notStartedCD: 'Não Iniciou CD',
+    
+    // Filtros Pessoais
+    personalFilters: 'Filtros Pessoais',
+    men: 'Homens',
+    women: 'Mulheres',
+    children: 'Crianças (0-12)',
+    teens: 'Teens (13-17)',
+    young: 'Jovens (18-25)',
+    adults: 'Adultos (26-40)',
+    middleAge: 'Meia-Idade (41-60)',
+    seniors: 'Seniors (60+)',
+    
+    // Detalhes e listagem
+    details: 'Detalhes',
+    memberList: 'Lista de Membros',
+    showingPeople: 'Mostrando',
+    peopleWithFilters: 'pessoas com filtros aplicados',
+    clickCardMessage: 'Clique em um card acima ou use filtros para ver os detalhes',
+    clearAll: 'Limpar Tudo',
+    noPersonFound: 'Nenhuma pessoa encontrada com os filtros selecionados.',
+    selectStatMessage: 'Selecione uma estatística ou filtro acima para visualizar a lista.',
+    visualAnalysis: 'Análise Visual',
+    detailedIndicators: 'Indicadores e gráficos detalhados da sua rede.',
+    discipleManagement: 'Gestão de Discípulos',
+    manageNetwork: 'Gerencie os membros da sua rede aqui.',
+  },
+  
+  // Analytics Charts
+  charts: {
+    noDataAvailable: 'Sem dados suficientes para gerar gráficos.',
+    totalGeneral: 'Total Geral',
+    averageAge: 'Idade Média',
+    activity: 'Atividade',
+    active: 'Ativos',
+    genderDistribution: 'Distribuição de Gênero',
+    men: 'Homens',
+    women: 'Mulheres',
+    people: 'pessoas',
+    baptismStatus: 'Status de Batismo',
+    uvCompletion: 'Conclusão Universidade da Vida',
+    completedUV: 'Concluiu UV',
+    notCompleted: 'Não Concluiu',
+    cdLevels: 'Capacitação de Destino (%)',
+    completion: 'Conclusão',
+  },
+  
+  // Form
+  form: {
+    birth: 'Nascimento',
+    gender: 'Sexo',
+    male: 'Masculino',
+    female: 'Feminino',
+    hierarchy: 'Hierarquia',
+    selectOption: 'Selecione...',
+    ecclesialLife: 'Vida Eclesiástica',
+    activityLevel: 'Nível de Atividade',
+    left: 'Saiu',
+    extremelyActive: 'Ext. Ativo',
+    baptized: 'Batizado',
+    yes: 'Sim',
+    no: 'Não',
+    universityOfLife: 'Universidade da Vida',
+    inProgress: 'Cursando',
+    destinationTraining: 'Capacitação Destino',
+    notStarted: 'Não Iniciou',
+    level1: 'Nível 1',
+    level2: 'Nível 2',
+    level3: 'Nível 3',
+    completed: 'Concluído',
+    ministry: 'Ministério',
+    ministryExample: 'Ex: Louvor',
+    leadershipExample: 'Ex: Liderança',
+    leadership: 'Liderança',
+    cancel: 'Cancelar',
+    saveRecord: 'Salvar Registro',
+  },
+  
+  // Messages and Labels
+  messages: {
+    loading: 'Carregando...',
+    loginError: 'E-mail ou senha incorretos. Tente novamente.',
+    saveError: 'Erro ao salvar usuário. Tente novamente.',
+    emailLabel: 'E-mail (Login de Acesso)',
+    emailPlaceholder: 'email@exemplo.com',
+    namePlaceholder: 'Ex: João da Silva',
+    phonePlaceholder: '(11) 99999-9999',
+  },
+  
+  // Activity Labels
+  activityLabels: {
+    leftChurch: 'Saiu da Igreja',
+    inactive: 'Inativo',
+    neutral: 'Neutro',
+    active: 'Ativo',
+    extremelyActive: 'Extremamente Ativo',
+  },
+  
+  // Tooltips
+  tooltips: {
+    viewFullNetwork: 'Ver Rede Completa',
+  },
+  
+  // Users
+  users: {
+    title: 'Gestão de Usuários',
+    add: 'Adicionar Usuário',
+    edit: 'Editar Usuário',
+    delete: 'Excluir',
+    search: 'Buscar por nome, e-mail ou telefone...',
+    name: 'Nome',
+    email: 'E-mail',
+    phone: 'Telefone',
+    role: 'Função',
+    gender: 'Gênero',
+    birthdate: 'Data de Nascimento',
+    ministry: 'Ministério',
+    activity: 'Nível de Atividade',
+    baptized: 'Batizado',
+    g12: 'G12',
+    universityOfLife: 'Universidade da Vida',
+    destination: 'Capacitação Destino',
+    supervisor: 'Supervisor',
+    male: 'Masculino',
+    female: 'Feminino',
+    yes: 'Sim',
+    no: 'Não',
+    save: 'Salvar',
+    cancel: 'Cancelar',
+    member: 'Membro',
+    noEmail: 'Sem e-mail',
+    noContact: 'Sem contato',
+    sup: 'Sup',
+    activityLevel: 'Atividade',
+    age: 'Idade',
+    years: 'anos',
+    activityLevels: {
+      left: 'Saiu',
+      inactive: 'Inativo',
+      neutral: 'Neutro',
+      active: 'Ativo',
+      veryActive: 'Ext. Ativo',
+    },
+  },
+  
+  // Disciples
+  disciples: {
+    title: 'Meus Discípulos',
+    myNetwork: 'Minha Rede',
+    total: 'Total de Discípulos',
+    active: 'Ativos',
+    inactive: 'Inativos',
+    filters: 'Filtros',
+    gender: 'Gênero',
+    age: 'Idade',
+    young: 'Jovens (18-30)',
+    adult: 'Adultos (31-50)',
+    senior: 'Seniores (51+)',
+    clearFilters: 'Limpar Filtros',
+  },
+  
+  // Study
+  study: {
+    title: 'Preparação de Estudo',
+    subtitle: 'Gere planos de célula e estudos bíblicos instantaneamente.',
+    generate: 'Gerar Plano',
+    generating: 'Gerando...',
+    theme: 'Tema',
+    themePlaceholder: 'Ex: Como vencer o medo na fé',
+    reference: 'Referência Bíblica',
+    referencePlaceholder: 'Ex: João 3:16, Salmos 23...',
+    language: 'Idioma',
+    portuguese: 'Português',
+    spanish: 'Espanhol',
+    english: 'Inglês',
+    copy: 'Copiar Texto',
+    copied: 'Copiado!',
+    print: 'Imprimir / Salvar PDF',
+    successTitle: 'Estudo Gerado com Sucesso',
+    errorMessage: 'Ocorreu um erro ao conectar com o serviço de IA. Verifique sua chave de API.',
+    emptyTheme: 'Por favor, insira um tema para gerar o estudo.',
+  },
+  
+  // Roles
+  roles: {
+    PASTOR: 'Pastor',
+    LIDER: 'Líder',
+    DISCIPULO: 'Discípulo',
+  },
+  
+  // Common
+  common: {
+    close: 'Fechar',
+    loading: 'Carregando...',
+    error: 'Erro',
+    success: 'Sucesso',
+    confirm: 'Confirmar',
+    password: 'Senha',
+    hello: 'Olá',
+    welcomeMessage: 'Aqui está o resumo da sua rede hoje.',
+    backToList: 'Voltar para lista',
+    addNew: 'Adicionar Novo',
+    fullName: 'Nome Completo',
+    position: 'Posição',
+    supervision: 'Supervisão',
+    actions: 'Ações',
+    action: 'Ação',
+    viewing: 'Visualizando',
+    filterByName: 'Filtrar por nome...',
+    downloadTemplate: 'Baixar Modelo',
+  },
+
+  // Pages
+  pages: {
+    leaders: {
+      title: 'Gestão de Líderes',
+      subtitle: 'Gerencie os líderes da sua rede.',
+      cellOf: 'Célula de',
+      viewingDisciples: 'discípulos.',
+    },
+    pastors: {
+      title: 'Gestão de Pastores',
+      subtitle: 'Gerencie os pastores da sua rede.',
+      networkOf: 'Rede de',
+      viewingDisciples: 'discípulos (Diretos e Indiretos).',
+    },
+  },
+};
+
+export type Translation = typeof pt;

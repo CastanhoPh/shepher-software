@@ -1,0 +1,3 @@
+nome,email,senha,genero,funcao,telefone,dataNascimento,supervisorId,ministerio,ministerioId,batizado,universidadeVida,capacitacaoDestino1,capacitacaoDestino2,capacitacaoDestino3,nivelAtividade
+Joao Silva,joao.silva@alianca.com,Senha@123,M,DISCIPULO,11999990000,1998-05-12,,Consolidação,,true,false,false,false,false,3
+Maria Santos,maria.santos@alianca.com,Senha@123,F,DISCIPULADOR,11999990001,1992-09-20,UID_DO_PASTOR,Louvor,,true,true,true,false,false,4

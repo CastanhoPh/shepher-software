@@ -1,0 +1,3 @@
+id,nome,email,funcao,telefone,genero,dataNascimento,supervisorId,supervisorNome,ministerioId,ministerioNome,batizado,universidadeVida,capacitacaoDestino1,capacitacaoDestino2,capacitacaoDestino3,nivelAtividade,ativo
+uid_exemplo_001,Joao Silva,joao.silva@alianca.com,DISCIPULO,11999990000,M,1998-05-12,uid_supervisor_001,Pastor Exemplo,min_001,Consolidação,true,false,false,false,false,3,true
+uid_exemplo_002,Maria Santos,maria.santos@alianca.com,DISCIPULADOR,11999990001,F,1992-09-20,uid_pastor_001,Pastor Exemplo,min_002,Louvor,true,true,true,false,false,4,true
