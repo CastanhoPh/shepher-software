@@ -36,3 +36,4 @@ npm-debug.log*
 # Archives
 *.tar.gz
 *.zip
+**/.env.development
