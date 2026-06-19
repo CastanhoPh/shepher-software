@@ -1,23 +1,25 @@
-import React, { useState, useMemo, useEffect, useRef } from 'react';
+import React, { useState, useMemo, useEffect, useRef, lazy, Suspense } from 'react';
 import {
     Users, User, Plus, LogOut, LayoutDashboard, X, Edit, Network,
     Briefcase, Crown, BookOpen, Menu, Calendar, Activity, FolderOpen,
     ArrowLeft, Moon, Sun, ListFilter, Medal, ArrowDown, Lock, Eye, EyeOff,
-    Filter, Heart, Smile, Globe, BarChart2, Mail, Check, Copy, ArrowUpRight, Book, Sparkles, ShieldCheck, Award, GraduationCap, Search, Languages, Upload, FileDown
+    Filter, Heart, Smile, Globe, BarChart2, Mail, Check, Copy, ArrowUpRight, Book, Sparkles, ShieldCheck, Award, GraduationCap, Search, Languages, Upload, FileDown, LogIn
 } from 'lucide-react';
 
 import { User as UserType, Role, ViewState, UserId } from './types';
 import { Badge } from './components/ui/Badge';
 import { AvatarPlaceholder } from './components/ui/AvatarPlaceholder';
 import { StatCard } from './components/ui/StatCard';
-import { DashboardCharts } from './components/dashboard/DashboardCharts';
+const DashboardCharts = lazy(() => import('./components/dashboard/DashboardCharts').then(m => ({ default: m.DashboardCharts })));
+const PreparacaoEstudo = lazy(() => import('./components/study/PreparacaoEstudo').then(m => ({ default: m.PreparacaoEstudo })));
 import { MobileUserCard } from './components/users/MobileUserCard';
-import { PreparacaoEstudo } from './components/study/PreparacaoEstudo';
 import { useAuth } from './contexts/AuthContext';
 import { useLanguage } from './contexts/LanguageContext';
 import { usuarioService, dashboardService, DashboardEstatisticas } from './services/api';
 import { INITIAL_USERS, INITIAL_DISCIPLES, MINISTERIOS_OPTIONS } from './constants';
 import shepherLogo from './assets/shepher_logo.png';
+import { logger } from './lib/logger';
+import toast from 'react-hot-toast';
 
 const LOCAL_TEST_MODE = import.meta.env.VITE_LOCAL_TEST_MODE === 'true';
 
@@ -29,7 +31,7 @@ const normalizeLocalUser = (u: any): UserType => ({
 });
 
 export default function App() {
-    const { user, login, logout, isLoading } = useAuth();
+    const { user, login, logout, isLoading, realUser, impersonatedUser, impersonate, stopImpersonating } = useAuth();
     const { language, setLanguage, t } = useLanguage();
     const [view, setView] = useState<ViewState>('login');
     const [usersDb, setUsersDb] = useState<UserType[]>([]);
@@ -42,7 +44,18 @@ export default function App() {
     const [selectedMinisterios, setSelectedMinisterios] = useState<string[]>([]);
     const [selectedLeader, setSelectedLeader] = useState<UserType | null>(null);
     const [selectedPastor, setSelectedPastor] = useState<UserType | null>(null);
-    const [darkMode, setDarkMode] = useState(false);
+    const [darkMode, setDarkMode] = useState(() => {
+        if (typeof window === 'undefined') return false;
+        const stored = window.localStorage.getItem('shepher:darkMode');
+        if (stored !== null) return stored === 'true';
+        return window.matchMedia?.('(prefers-color-scheme: dark)').matches ?? false;
+    });
+
+    useEffect(() => {
+        if (typeof window !== 'undefined') {
+            window.localStorage.setItem('shepher:darkMode', String(darkMode));
+        }
+    }, [darkMode]);
     
     // Login States
     const [loginEmail, setLoginEmail] = useState('');
@@ -181,11 +194,36 @@ export default function App() {
         return getStatData(type, baseFilteredList).length;
     };
 
+    // Helpers para filtros exclusivos: ao selecionar um, os outros são zerados.
+    const selectGender = (value: string) => {
+        setFilterGender(filterGender === value ? null : value);
+        setFilterAge(null);
+        setSelectedStat(null);
+        setSearchTerm('');
+    };
+    const selectAge = (value: string) => {
+        setFilterAge(filterAge === value ? null : value);
+        setFilterGender(null);
+        setSelectedStat(null);
+        setSearchTerm('');
+    };
+    const selectStat = (value: string) => {
+        setSelectedStat(selectedStat === value ? null : value);
+        setFilterGender(null);
+        setFilterAge(null);
+        setSearchTerm('');
+    };
+    const updateSearchTerm = (value: string) => {
+        setSearchTerm(value);
+        if (value) {
+            setFilterGender(null);
+            setFilterAge(null);
+            setSelectedStat(null);
+        }
+    };
+
     const getFilterCount = (type: string, value: string) => {
-        // Here we only filter by search to show how many people match the search in that category
-        const listWithSearch = networkDisciples.filter(d => d.name.toLowerCase().includes(searchTerm.toLowerCase()));
-        
-        return listWithSearch.filter(p => {
+        return networkDisciples.filter(p => {
             if (type === 'sexo') return p.sexo === value;
             if (type === 'age') {
                 const age = calculateAge(p.nascimento);
@@ -221,7 +259,7 @@ export default function App() {
             setUsersDb(leaders);
             setDisciplesDb(disciples);
         } catch (error) {
-            console.error('Erro ao carregar usuários:', error);
+            logger.error('Erro ao carregar usuários:', error);
         }
     };
 
@@ -234,7 +272,7 @@ export default function App() {
             const stats = await dashboardService.obterEstatisticas();
             setDashboardStats(stats);
         } catch (error) {
-            console.error('Erro ao carregar estatísticas do dashboard:', error);
+            logger.error('Erro ao carregar estatísticas do dashboard:', error);
             setDashboardStats(null);
         }
     };
@@ -256,24 +294,30 @@ export default function App() {
             setLoginEmail('');
             setLoginPassword('');
         } catch (error: any) {
-            console.error('Erro no login:', error);
+            logger.error('Erro no login:', error);
             setLoginError(error.response?.data?.message || t.messages.loginError);
         }
     };
 
-    const handleDelete = async (id: UserId) => { 
+    const handleDelete = async (id: UserId) => {
+        const alvo = [...usersDb, ...disciplesDb].find((u) => u.id === id);
+        const nomeAlvo = alvo?.name ?? 'este usuário';
+        if (!window.confirm(`Tem certeza que deseja remover ${nomeAlvo}? Esta ação não pode ser desfeita.`)) {
+            return;
+        }
         try {
             await usuarioService.deletar(id);
             await Promise.all([loadUsuarios(), loadDashboardStats()]);
+            toast.success(`${nomeAlvo} removido com sucesso.`);
         } catch (error) {
-            console.error('Erro ao deletar usuário:', error);
-            alert('Erro ao deletar usuário. Tente novamente.');
+            logger.error('Erro ao deletar usuário:', error);
+            toast.error('Erro ao deletar usuário. Tente novamente.');
         }
     };
 
     const handleExportarRelatorio = async () => {
         if (LOCAL_TEST_MODE) {
-            alert('Exportação indisponível no modo local sem backend.');
+            toast.error('Exportação indisponível no modo local sem backend.');
             return;
         }
         try {
@@ -288,8 +332,8 @@ export default function App() {
             anchor.remove();
             window.URL.revokeObjectURL(url);
         } catch (error) {
-            console.error('Erro ao exportar relatório:', error);
-            alert('Não foi possível exportar o relatório.');
+            logger.error('Erro ao exportar relatório:', error);
+            toast.error('Não foi possível exportar o relatório.');
         }
     };
 
@@ -301,8 +345,8 @@ export default function App() {
         try {
             await usuarioService.baixarModeloImportacao();
         } catch (error) {
-            console.error('Erro ao baixar modelo:', error);
-            alert('Não foi possível baixar o modelo de importação.');
+            logger.error('Erro ao baixar modelo:', error);
+            toast.error('Não foi possível baixar o modelo de importação.');
         }
     };
 
@@ -311,26 +355,23 @@ export default function App() {
         event.target.value = '';
         if (!file) return;
         if (LOCAL_TEST_MODE) {
-            alert('Importação indisponível no modo local sem backend.');
+            toast.error('Importação indisponível no modo local sem backend.');
             return;
         }
         try {
             setIsImportingExcel(true);
             const resultado = await usuarioService.importarExcel(file);
             await Promise.all([loadUsuarios(), loadDashboardStats()]);
-            const resumo = [
-                `Total de linhas: ${resultado.totalLinhas}`,
-                `Criados: ${resultado.criados}`,
-                `Erros: ${resultado.erros.length}`,
-            ];
-            if (resultado.erros.length > 0) {
-                const preview = resultado.erros.slice(0, 5).map((e) => `Linha ${e.linha}: ${e.motivo}`).join('\n');
-                resumo.push('', 'Primeiros erros:', preview);
+            const msg = `Importação: ${resultado.criados} de ${resultado.totalLinhas} criados${resultado.erros.length > 0 ? ` (${resultado.erros.length} erros)` : ''}`;
+            if (resultado.erros.length === 0) {
+                toast.success(msg);
+            } else {
+                toast(msg, { icon: '⚠️', duration: 8000 });
+                logger.warn('Erros de importação:', resultado.erros);
             }
-            alert(resumo.join('\n'));
         } catch (error) {
-            console.error('Erro ao importar Excel:', error);
-            alert('Não foi possível importar o Excel. Verifique o arquivo e tente novamente.');
+            logger.error('Erro ao importar Excel:', error);
+            toast.error('Não foi possível importar o Excel. Verifique o arquivo e tente novamente.');
         } finally {
             setIsImportingExcel(false);
         }
@@ -393,8 +434,8 @@ export default function App() {
             else setView('disciples');
             setEditingItem(null);
         } catch (error: any) {
-            console.error('Erro ao salvar usuário:', error);
-            alert(error.response?.data?.message || t.messages.saveError);
+            logger.error('Erro ao salvar usuário:', error);
+            toast.error(error.response?.data?.message || t.messages.saveError);
         }
     };
 
@@ -583,6 +624,15 @@ export default function App() {
                     </div>
                 </aside>
                 <main className="flex-1 p-4 lg:p-10 h-dvh overflow-y-auto scroll-smooth">
+                    {impersonatedUser && (
+                        <div className="mb-6 p-4 rounded-2xl bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-700 flex flex-col sm:flex-row items-center justify-between gap-3">
+                            <div className="flex items-center gap-3 text-amber-800 dark:text-amber-200">
+                                <ShieldCheck size={20} />
+                                <p className="text-sm font-bold">Visualizando como <span className="underline">{impersonatedUser.name}</span> ({impersonatedUser.role}). As ações refletem a permissão original.</p>
+                            </div>
+                            <button onClick={stopImpersonating} className="w-full sm:w-auto bg-amber-600 hover:bg-amber-700 text-white px-4 py-2 rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition active:scale-95"><ArrowLeft size={16} /> Voltar para {realUser?.name?.split(' ')[0] ?? 'meu acesso'}</button>
+                        </div>
+                    )}
                     <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-8 md:mb-12 print-hidden">
                         <div className="flex items-center gap-4 w-full md:w-auto"><button onClick={() => setMobileMenuOpen(true)} className="p-3 bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-gray-100 dark:border-slate-700 lg:hidden text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-slate-700 active:scale-95 transition"><Menu /></button><div><h1 className="text-2xl md:text-3xl font-black text-gray-900 dark:text-white tracking-tight">{t.common.hello}, {user.name.split(' ')[0]} <span className="text-3xl md:text-4xl inline-block hover:animate-spin">👋</span></h1><p className="text-gray-400 font-medium text-sm md:text-base">{t.common.welcomeMessage}</p></div></div>
                         <div className="flex flex-col sm:flex-row items-center gap-3 md:gap-5 w-full md:w-auto bg-white dark:bg-slate-800 p-2 rounded-[1.5rem] shadow-sm border border-gray-100/50 dark:border-slate-700">
@@ -599,45 +649,47 @@ export default function App() {
                     </header>
                     {view === 'leaders' && (
                         <div className="space-y-8 animate-in fade-in duration-500 pb-20">
-                            <div className="flex justify-between items-end">
-                                {selectedLeader ? (<div><button onClick={() => setSelectedLeader(null)} className="flex items-center gap-2 text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 mb-2 transition"><ArrowLeft size={18} /> {t.common.backToList}</button><h2 className="text-3xl font-black text-gray-900 dark:text-white tracking-tight flex items-center gap-3"><FolderOpen className="text-blue-600 dark:text-blue-400" size={28} /> {t.pages.leaders.cellOf} {selectedLeader.name.split(' ')[0]}</h2><p className="text-gray-400 font-medium">{t.common.viewing} {statDetailsList.length} {t.pages.leaders.viewingDisciples}</p></div>) : (<div><h2 className="text-3xl font-black text-gray-900 dark:text-white tracking-tight">{t.pages.leaders.title}</h2><p className="text-gray-400 font-medium">{t.pages.leaders.subtitle}</p></div>)}
+                            <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 mb-8 md:mb-10">
+                                {selectedLeader ? (<div><button onClick={() => setSelectedLeader(null)} className="flex items-center gap-2 text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 mb-2 transition"><ArrowLeft size={18} /> {t.common.backToList}</button><h2 className="text-2xl md:text-3xl font-black text-gray-900 dark:text-white tracking-tight flex items-center gap-3"><FolderOpen className="text-blue-600 dark:text-blue-400" size={28} /> {t.pages.leaders.cellOf} {selectedLeader.name.split(' ')[0]}</h2><p className="text-gray-400 font-medium mt-2 text-sm md:text-base">{t.common.viewing} {statDetailsList.length} {t.pages.leaders.viewingDisciples}</p></div>) : (<div><h2 className="text-2xl md:text-3xl font-black text-gray-900 dark:text-white tracking-tight">{t.pages.leaders.title}</h2><p className="text-gray-400 font-medium mt-2 text-sm md:text-base">{t.pages.leaders.subtitle}</p></div>)}
                                 {!selectedLeader && (user.role === 'ADM' || user.role === 'PASTOR') && (<button onClick={() => openForm('DISCIPULADOR')} className="w-full md:w-auto bg-blue-600 hover:bg-blue-700 text-white px-8 py-4 rounded-2xl text-sm font-bold flex items-center justify-center gap-3 shadow-lg shadow-blue-200 dark:shadow-none transition transform active:scale-95 hover:-translate-y-1"><Plus size={20} /> {t.common.addNew}</button>)}
                             </div>
-                            <div className="bg-white dark:bg-slate-800 rounded-[2.5rem] border border-gray-100 dark:border-slate-700 shadow-xl overflow-hidden">
-                                <div className="hidden md:block overflow-x-auto"><table className="w-full text-left"><thead className="bg-gray-50/50 dark:bg-slate-700/50 text-gray-400 text-xs uppercase font-bold tracking-widest"><tr><th className="px-8 py-6">{t.users.name}</th><th className="px-6 py-6">{t.common.position}</th><th className="px-6 py-6">{t.common.supervision}</th><th className="px-8 py-6 text-right">{t.common.actions}</th></tr></thead><tbody className="divide-y divide-gray-50 dark:divide-slate-700">{(selectedLeader ? statDetailsList : networkDisciples.filter(u => u.role === 'DISCIPULADOR' || (u.pastorId === user.id && u.role === 'DISCIPULADOR'))).map((item) => (<tr key={item.id} className="group hover:bg-blue-50/30 dark:hover:bg-slate-700/50 transition"><td className="px-8 py-5"><div className="flex items-center gap-5"><AvatarPlaceholder name={item.name} size="md" /><div><p className="font-bold text-gray-800 dark:text-white text-sm">{item.name}</p><p className="text-xs text-gray-400">{item.email || t.users.noEmail}</p></div></div></td><td className="px-6 py-5"><Badge type={item.role}>{item.role}</Badge></td><td className="px-6 py-5 text-sm text-gray-500 dark:text-gray-400">{getSupervisorName(item.discipuladorId || item.pastorId)}</td><td className="px-8 py-5 text-right"><div className="flex justify-end gap-2">{!selectedLeader && (<button onClick={() => setSelectedLeader(item)} className="p-2.5 text-white bg-blue-600 hover:bg-blue-700 rounded-xl transition shadow-md hover:shadow-lg tooltip" title="Ver Célula"><FolderOpen size={18} /></button>)}<button onClick={() => openForm(item.role, item)} className="p-2.5 text-gray-400 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 bg-white dark:bg-slate-700 hover:shadow-md rounded-xl transition"><Edit size={18} /></button></div></td></tr>))}</tbody></table></div>
-                                <div className="md:hidden p-4 bg-gray-50/30 dark:bg-slate-900/30">{(selectedLeader ? statDetailsList : networkDisciples.filter(u => u.role === 'DISCIPULADOR')).map((item) => (<MobileUserCard key={item.id} item={item} view={view} openForm={openForm} handleDelete={handleDelete} user={user} getSupervisorName={getSupervisorName} onOpenCell={selectedLeader ? undefined : setSelectedLeader} />))}</div>
+                            <div className="bg-white dark:bg-slate-800 rounded-[1.5rem] md:rounded-[2.5rem] border border-gray-100 dark:border-slate-700 shadow-xl shadow-gray-100/50 dark:shadow-none overflow-hidden">
+                                <div className="p-4 md:p-6 border-b border-gray-100 dark:border-slate-700 flex flex-col md:flex-row items-center gap-4 bg-gray-50/30 dark:bg-slate-700/30"><div className="bg-white dark:bg-slate-700 flex items-center gap-3 px-5 py-3 rounded-2xl border border-gray-100 dark:border-slate-600 w-full md:max-w-sm shadow-sm focus-within:ring-2 focus-within:ring-blue-100 transition-all"><Search size={18} className="text-gray-400 shrink-0" /><input value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} placeholder={t.common.filterByName} className="bg-transparent outline-none text-sm font-medium text-gray-700 dark:text-white w-full placeholder-gray-400" /></div></div>
+                                <div className="hidden md:block overflow-x-auto"><table className="w-full text-left"><thead className="bg-gray-50/50 dark:bg-slate-700/50 text-gray-400 text-xs uppercase font-bold tracking-widest"><tr><th className="px-8 py-6">{t.users.name}</th><th className="px-6 py-6">{t.common.position}</th><th className="px-6 py-6">{t.common.supervision}</th><th className="px-8 py-6 text-right">{t.common.actions}</th></tr></thead><tbody className="divide-y divide-gray-50 dark:divide-slate-700">{(selectedLeader ? statDetailsList : networkDisciples.filter(u => u.role === 'DISCIPULADOR' || (u.pastorId === user.id && u.role === 'DISCIPULADOR'))).filter(u => u.name.toLowerCase().includes(searchTerm.toLowerCase())).map((item) => (<tr key={item.id} className="group hover:bg-blue-50/30 dark:hover:bg-slate-700/50 transition"><td className="px-8 py-5"><div className="flex items-center gap-5"><AvatarPlaceholder name={item.name} size="md" /><div><p className="font-bold text-gray-800 dark:text-white text-sm">{item.name}</p><p className="text-xs text-gray-400">{item.email || t.users.noEmail}</p></div></div></td><td className="px-6 py-5"><Badge type={item.role}>{item.role}</Badge></td><td className="px-6 py-5 text-sm text-gray-500 dark:text-gray-400">{getSupervisorName(item.discipuladorId || item.pastorId)}</td><td className="px-8 py-5 text-right"><div className="flex justify-end gap-2">{realUser?.role === 'ADM' && realUser.id !== item.id && (<button onClick={() => impersonate(item)} className="p-2.5 text-white bg-amber-500 hover:bg-amber-600 rounded-xl transition shadow-md hover:shadow-lg" title={`Acessar como ${item.name}`} aria-label={`Acessar como ${item.name}`}><LogIn size={18} /></button>)}{!selectedLeader && (<button onClick={() => setSelectedLeader(item)} className="p-2.5 text-white bg-blue-600 hover:bg-blue-700 rounded-xl transition shadow-md hover:shadow-lg tooltip" title="Ver Célula" aria-label="Ver Célula"><FolderOpen size={18} /></button>)}<button onClick={() => openForm(item.role, item)} className="p-2.5 text-gray-400 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 bg-white dark:bg-slate-700 hover:shadow-md rounded-xl transition" aria-label={`Editar ${item.name}`}><Edit size={18} /></button></div></td></tr>))}</tbody></table></div>
+                                <div className="md:hidden p-4 bg-gray-50/30 dark:bg-slate-900/30">{(selectedLeader ? statDetailsList : networkDisciples.filter(u => u.role === 'DISCIPULADOR')).filter(u => u.name.toLowerCase().includes(searchTerm.toLowerCase())).map((item) => (<MobileUserCard key={item.id} item={item} view={view} openForm={openForm} handleDelete={handleDelete} user={user} getSupervisorName={getSupervisorName} onOpenCell={selectedLeader ? undefined : setSelectedLeader} />))}</div>
                             </div>
                         </div>
                     )}
                     {view === 'pastors' && (
                         <div className="space-y-8 animate-in fade-in duration-500 pb-20">
-                             <div className="flex justify-between items-end">
-                                {selectedPastor ? (<div><button onClick={() => setSelectedPastor(null)} className="flex items-center gap-2 text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 mb-2 transition"><ArrowLeft size={18} /> {t.common.backToList}</button><h2 className="text-3xl font-black text-gray-900 dark:text-white tracking-tight flex items-center gap-3"><FolderOpen className="text-blue-600 dark:text-blue-400" size={28} /> {t.pages.pastors.networkOf} {selectedPastor.name.split(' ')[0]}</h2><p className="text-gray-400 font-medium">{t.common.viewing} {statDetailsList.length} {t.pages.pastors.viewingDisciples}</p></div>) : (<div><h2 className="text-3xl font-black text-gray-900 dark:text-white tracking-tight">{t.pages.pastors.title}</h2><p className="text-gray-400 font-medium">{t.pages.pastors.subtitle}</p></div>)}
+                            <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 mb-8 md:mb-10">
+                                {selectedPastor ? (<div><button onClick={() => setSelectedPastor(null)} className="flex items-center gap-2 text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 mb-2 transition"><ArrowLeft size={18} /> {t.common.backToList}</button><h2 className="text-2xl md:text-3xl font-black text-gray-900 dark:text-white tracking-tight flex items-center gap-3"><FolderOpen className="text-blue-600 dark:text-blue-400" size={28} /> {t.pages.pastors.networkOf} {selectedPastor.name.split(' ')[0]}</h2><p className="text-gray-400 font-medium mt-2 text-sm md:text-base">{t.common.viewing} {statDetailsList.length} {t.pages.pastors.viewingDisciples}</p></div>) : (<div><h2 className="text-2xl md:text-3xl font-black text-gray-900 dark:text-white tracking-tight">{t.pages.pastors.title}</h2><p className="text-gray-400 font-medium mt-2 text-sm md:text-base">{t.pages.pastors.subtitle}</p></div>)}
                                 {!selectedPastor && (user.role === 'ADM') && (<button onClick={() => openForm('PASTOR')} className="w-full md:w-auto bg-blue-600 hover:bg-blue-700 text-white px-8 py-4 rounded-2xl text-sm font-bold flex items-center justify-center gap-3 shadow-lg shadow-blue-200 dark:shadow-none transition transform active:scale-95 hover:-translate-y-1"><Plus size={20} /> {t.common.addNew}</button>)}
                             </div>
-                            <div className="bg-white dark:bg-slate-800 rounded-[2.5rem] border border-gray-100 dark:border-slate-700 shadow-xl overflow-hidden">
-                                <div className="hidden md:block overflow-x-auto"><table className="w-full text-left"><thead className="bg-gray-50/50 dark:bg-slate-700/50 text-gray-400 text-xs uppercase font-bold tracking-widest"><tr><th className="px-8 py-6">{t.users.name}</th><th className="px-6 py-6">{t.common.position}</th><th className="px-6 py-6">{t.common.supervision}</th><th className="px-8 py-6 text-right">{t.common.actions}</th></tr></thead><tbody className="divide-y divide-gray-50 dark:divide-slate-700">{(selectedPastor ? statDetailsList : networkDisciples.filter(u => u.role === 'PASTOR')).map((item) => (<tr key={item.id} className="group hover:bg-blue-50/30 dark:hover:bg-slate-700/50 transition"><td className="px-8 py-5"><div className="flex items-center gap-5"><AvatarPlaceholder name={item.name} size="md" /><div><p className="font-bold text-gray-800 dark:text-white text-sm">{item.name}</p><p className="text-xs text-gray-400">{item.email || t.users.noEmail}</p></div></div></td><td className="px-6 py-5"><Badge type={item.role}>{item.role}</Badge></td><td className="px-6 py-5 text-sm text-gray-500 dark:text-gray-400">{getSupervisorName(item.pastorId)}</td><td className="px-8 py-5 text-right"><div className="flex justify-end gap-2">{!selectedPastor && (<button onClick={() => setSelectedPastor(item)} className="p-2.5 text-white bg-blue-600 hover:bg-blue-700 rounded-xl transition shadow-md hover:shadow-lg tooltip" title={t.tooltips.viewFullNetwork}><FolderOpen size={18} /></button>)}<button onClick={() => openForm(item.role, item)} className="p-2.5 text-gray-400 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 bg-white dark:bg-slate-700 hover:shadow-md rounded-xl transition"><Edit size={18} /></button></div></td></tr>))}</tbody></table></div>
-                                <div className="md:hidden p-4 bg-gray-50/30 dark:bg-slate-900/30">{(selectedPastor ? statDetailsList : networkDisciples.filter(u => u.role === 'PASTOR')).map((item) => (<MobileUserCard key={item.id} item={item} view={view} openForm={openForm} handleDelete={handleDelete} user={user} getSupervisorName={getSupervisorName} onOpenCell={selectedPastor ? undefined : setSelectedPastor} />))}</div>
+                            <div className="bg-white dark:bg-slate-800 rounded-[1.5rem] md:rounded-[2.5rem] border border-gray-100 dark:border-slate-700 shadow-xl shadow-gray-100/50 dark:shadow-none overflow-hidden">
+                                <div className="p-4 md:p-6 border-b border-gray-100 dark:border-slate-700 flex flex-col md:flex-row items-center gap-4 bg-gray-50/30 dark:bg-slate-700/30"><div className="bg-white dark:bg-slate-700 flex items-center gap-3 px-5 py-3 rounded-2xl border border-gray-100 dark:border-slate-600 w-full md:max-w-sm shadow-sm focus-within:ring-2 focus-within:ring-blue-100 transition-all"><Search size={18} className="text-gray-400 shrink-0" /><input value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} placeholder={t.common.filterByName} className="bg-transparent outline-none text-sm font-medium text-gray-700 dark:text-white w-full placeholder-gray-400" /></div></div>
+                                <div className="hidden md:block overflow-x-auto"><table className="w-full text-left"><thead className="bg-gray-50/50 dark:bg-slate-700/50 text-gray-400 text-xs uppercase font-bold tracking-widest"><tr><th className="px-8 py-6">{t.users.name}</th><th className="px-6 py-6">{t.common.position}</th><th className="px-6 py-6">{t.common.supervision}</th><th className="px-8 py-6 text-right">{t.common.actions}</th></tr></thead><tbody className="divide-y divide-gray-50 dark:divide-slate-700">{(selectedPastor ? statDetailsList : networkDisciples.filter(u => u.role === 'PASTOR')).filter(u => u.name.toLowerCase().includes(searchTerm.toLowerCase())).map((item) => (<tr key={item.id} className="group hover:bg-blue-50/30 dark:hover:bg-slate-700/50 transition"><td className="px-8 py-5"><div className="flex items-center gap-5"><AvatarPlaceholder name={item.name} size="md" /><div><p className="font-bold text-gray-800 dark:text-white text-sm">{item.name}</p><p className="text-xs text-gray-400">{item.email || t.users.noEmail}</p></div></div></td><td className="px-6 py-5"><Badge type={item.role}>{item.role}</Badge></td><td className="px-6 py-5 text-sm text-gray-500 dark:text-gray-400">{getSupervisorName(item.pastorId)}</td><td className="px-8 py-5 text-right"><div className="flex justify-end gap-2">{realUser?.role === 'ADM' && realUser.id !== item.id && (<button onClick={() => impersonate(item)} className="p-2.5 text-white bg-amber-500 hover:bg-amber-600 rounded-xl transition shadow-md hover:shadow-lg" title={`Acessar como ${item.name}`} aria-label={`Acessar como ${item.name}`}><LogIn size={18} /></button>)}{!selectedPastor && (<button onClick={() => setSelectedPastor(item)} className="p-2.5 text-white bg-blue-600 hover:bg-blue-700 rounded-xl transition shadow-md hover:shadow-lg tooltip" title={t.tooltips.viewFullNetwork} aria-label={t.tooltips.viewFullNetwork}><FolderOpen size={18} /></button>)}<button onClick={() => openForm(item.role, item)} className="p-2.5 text-gray-400 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 bg-white dark:bg-slate-700 hover:shadow-md rounded-xl transition" aria-label={`Editar ${item.name}`}><Edit size={18} /></button></div></td></tr>))}</tbody></table></div>
+                                <div className="md:hidden p-4 bg-gray-50/30 dark:bg-slate-900/30">{(selectedPastor ? statDetailsList : networkDisciples.filter(u => u.role === 'PASTOR')).filter(u => u.name.toLowerCase().includes(searchTerm.toLowerCase())).map((item) => (<MobileUserCard key={item.id} item={item} view={view} openForm={openForm} handleDelete={handleDelete} user={user} getSupervisorName={getSupervisorName} onOpenCell={selectedPastor ? undefined : setSelectedPastor} />))}</div>
                             </div>
                         </div>
                     )}
                     {view === 'dashboard' && (
                         <div className="space-y-8 md:space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-700 pb-20 md:pb-0">
-                            <div><h3 className="text-base md:text-lg font-bold text-gray-800 dark:text-white mb-4 md:mb-5 flex items-center gap-2"><span className="w-2 h-6 bg-purple-500 rounded-full inline-block"></span>{t.dashboard.personalFilters}</h3><div className="flex flex-col gap-6"><div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6"><div className="bg-white dark:bg-slate-700 flex items-center gap-3 px-5 py-4 rounded-2xl border border-gray-100 dark:border-slate-600 flex-1 w-full shadow-sm focus-within:ring-2 focus-within:ring-blue-100 transition-all"><Search size={20} className="text-gray-400" /><input value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} placeholder={t.common.filterByName} className="bg-transparent outline-none text-sm font-medium text-gray-700 dark:text-white w-full placeholder-gray-400" /></div><div className="flex gap-4 md:gap-6"><StatCard title={t.dashboard.men} value={getFilterCount('sexo', 'M')} icon={User} colorBg="bg-blue-500" shadowColor="shadow-blue-200" onClick={() => { setFilterGender(filterGender === 'M' ? null : 'M'); setSelectedStat(null); setFilterAge(null); }} isSelected={filterGender === 'M'} /><StatCard title={t.dashboard.women} value={getFilterCount('sexo', 'F')} icon={User} colorBg="bg-pink-500" shadowColor="shadow-pink-200" onClick={() => { setFilterGender(filterGender === 'F' ? null : 'F'); setSelectedStat(null); setFilterAge(null); }} isSelected={filterGender === 'F'} /></div></div><div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 md:gap-6"><StatCard title={t.dashboard.children} value={getFilterCount('age', '0-12')} icon={Smile} colorBg="bg-sky-400" shadowColor="shadow-sky-200" onClick={() => { setFilterAge(filterAge === '0-12' ? null : '0-12'); setSelectedStat(null); setFilterGender(null); }} isSelected={filterAge === '0-12'} /><StatCard title={t.dashboard.teens} value={getFilterCount('age', '13-17')} icon={User} colorBg="bg-orange-400" shadowColor="shadow-orange-200" onClick={() => { setFilterAge(filterAge === '13-17' ? null : '13-17'); setSelectedStat(null); setFilterGender(null); }} isSelected={filterAge === '13-17'} /><StatCard title={t.dashboard.young} value={getFilterCount('age', '18-25')} icon={Sparkles} colorBg="bg-yellow-400" colorText="text-gray-800" shadowColor="shadow-yellow-200" onClick={() => { setFilterAge(filterAge === '18-25' ? null : '18-25'); setSelectedStat(null); setFilterGender(null); }} isSelected={filterAge === '18-25'} /><StatCard title={t.dashboard.adults} value={getFilterCount('age', '26-40')} icon={Briefcase} colorBg="bg-indigo-500" shadowColor="shadow-indigo-200" onClick={() => { setFilterAge(filterAge === '26-40' ? null : '26-40'); setSelectedStat(null); setFilterGender(null); }} isSelected={filterAge === '26-40'} /><StatCard title={t.dashboard.middleAge} value={getFilterCount('age', '41-60')} icon={ShieldCheck} colorBg="bg-slate-500" shadowColor="shadow-slate-200" onClick={() => { setFilterAge(filterAge === '41-60' ? null : '41-60'); setSelectedStat(null); setFilterGender(null); }} isSelected={filterAge === '41-60'} /><StatCard title={t.dashboard.seniors} value={getFilterCount('age', '60+')} icon={Sun} colorBg="bg-purple-500" shadowColor="shadow-purple-200" onClick={() => { setFilterAge(filterAge === '60+' ? null : '60+'); setSelectedStat(null); setFilterGender(null); }} isSelected={filterAge === '60+'} /></div></div></div>
-                            <div><h3 className="text-base md:text-lg font-bold text-gray-800 dark:text-white mb-4 md:mb-5 flex items-center gap-2"><span className="w-2 h-6 bg-blue-500 rounded-full inline-block"></span>{t.dashboard.statistics}</h3><div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-4 md:mb-6"><StatCard title={t.dashboard.g12Disciples} value={getDashboardValue('g12')} icon={Users} colorBg="bg-blue-600" shadowColor="shadow-blue-200" onClick={() => { setSelectedStat('G12'); }} isSelected={selectedStat === 'G12'} /><StatCard title={t.dashboard.cellDisciples} value={getDashboardValue('celula')} icon={User} colorBg="bg-emerald-500" shadowColor="shadow-emerald-200" onClick={() => { setSelectedStat('CELULA'); }} isSelected={selectedStat === 'CELULA'} /><StatCard title={t.dashboard.disciples144} value={getDashboardValue('real144')} icon={Network} colorBg="bg-purple-600" shadowColor="shadow-purple-200" onClick={() => { setSelectedStat('REAL_144'); }} isSelected={selectedStat === 'REAL_144'} /><StatCard title={t.dashboard.allDisciples} value={getDashboardValue('total')} icon={Globe} colorBg="bg-pink-600" shadowColor="shadow-pink-200" onClick={() => { setSelectedStat('TODOS'); }} isSelected={selectedStat === 'TODOS'} /></div><div className="grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-6"><StatCard title={t.dashboard.baptized} value={getDashboardValue('batizados')} icon={Book} colorBg="bg-violet-600" shadowColor="shadow-violet-200" onClick={() => { setSelectedStat('BATIZADO'); }} isSelected={selectedStat === 'BATIZADO'} /><StatCard title={t.dashboard.notBaptized} value={getDashboardValue('naoBatizados')} icon={User} colorBg="bg-red-500" shadowColor="shadow-red-200" onClick={() => { setSelectedStat('NAO_BATIZADO'); }} isSelected={selectedStat === 'NAO_BATIZADO'} /></div></div>
-                            <div><h3 className="text-base md:text-lg font-bold text-gray-800 dark:text-white mb-4 md:mb-5 flex items-center gap-2"><span className="w-2 h-6 bg-amber-500 rounded-full inline-block"></span>{t.dashboard.growthTrack}</h3><div className="grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-6 mb-4 md:mb-6"><StatCard title={t.dashboard.uv} value={getDashboardValue('uv')} icon={GraduationCap} colorBg="bg-lime-400" shadowColor="shadow-lime-200" onClick={() => { setSelectedStat('UV'); }} isSelected={selectedStat === 'UV'} /><StatCard title={t.dashboard.notStartedUV} value={getDashboardValue('naoIniciouUV')} icon={Book} colorBg="bg-red-500" shadowColor="shadow-red-200" onClick={() => { setSelectedStat('NAO_INICIOU_UV'); }} isSelected={selectedStat === 'NAO_INICIOU_UV'} /></div><div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6"><StatCard title={t.dashboard.cd1} value={getDashboardValue('cd1')} icon={Award} colorBg="bg-cyan-400" shadowColor="shadow-cyan-200" onClick={() => { setSelectedStat('CD1'); }} isSelected={selectedStat === 'CD1'} /><StatCard title={t.dashboard.cd2} value={getDashboardValue('cd2')} icon={Award} colorBg="bg-blue-600" shadowColor="shadow-blue-200" onClick={() => { setSelectedStat('CD2'); }} isSelected={selectedStat === 'CD2'} /><StatCard title={t.dashboard.cd3} value={getDashboardValue('cd3')} icon={Award} colorBg="bg-blue-900" shadowColor="shadow-blue-300" onClick={() => { setSelectedStat('CD3'); }} isSelected={selectedStat === 'CD3'} /><StatCard title={t.dashboard.notStartedCD} value={getDashboardValue('naoIniciouCD')} icon={Book} colorBg="bg-red-500" shadowColor="shadow-red-200" onClick={() => { setSelectedStat('NAO_INICIOU_CD'); }} isSelected={selectedStat === 'NAO_INICIOU_CD'} /></div></div>
+                            <div><h3 className="text-base md:text-lg font-bold text-gray-800 dark:text-white mb-4 md:mb-5 flex items-center gap-2"><span className="w-2 h-6 bg-purple-500 rounded-full inline-block"></span>{t.dashboard.personalFilters}</h3><div className="flex flex-col gap-4 md:gap-6"><div className="flex flex-col md:flex-row md:items-center gap-4 md:gap-6"><div className="bg-white dark:bg-slate-700 flex items-center gap-3 px-5 py-3 rounded-2xl border border-gray-100 dark:border-slate-600 w-full md:max-w-sm shadow-sm focus-within:ring-2 focus-within:ring-blue-100 transition-all"><Search size={18} className="text-gray-400 shrink-0" /><input value={searchTerm} onChange={(e) => updateSearchTerm(e.target.value)} placeholder={t.common.filterByName} className="bg-transparent outline-none text-sm font-medium text-gray-700 dark:text-white w-full placeholder-gray-400" /></div><div className="grid grid-cols-2 gap-4 md:gap-6 md:flex-1"><StatCard title={t.dashboard.men} value={getFilterCount('sexo', 'M')} icon={User} colorBg="bg-blue-500" shadowColor="shadow-blue-200" onClick={() => selectGender('M')} isSelected={filterGender === 'M'} /><StatCard title={t.dashboard.women} value={getFilterCount('sexo', 'F')} icon={User} colorBg="bg-pink-500" shadowColor="shadow-pink-200" onClick={() => selectGender('F')} isSelected={filterGender === 'F'} /></div></div><div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 md:gap-6"><StatCard title={t.dashboard.children} value={getFilterCount('age', '0-12')} icon={Smile} colorBg="bg-sky-400" shadowColor="shadow-sky-200" onClick={() => selectAge('0-12')} isSelected={filterAge === '0-12'} /><StatCard title={t.dashboard.teens} value={getFilterCount('age', '13-17')} icon={User} colorBg="bg-orange-400" shadowColor="shadow-orange-200" onClick={() => selectAge('13-17')} isSelected={filterAge === '13-17'} /><StatCard title={t.dashboard.young} value={getFilterCount('age', '18-25')} icon={Sparkles} colorBg="bg-yellow-400" colorText="text-gray-800" shadowColor="shadow-yellow-200" onClick={() => selectAge('18-25')} isSelected={filterAge === '18-25'} /><StatCard title={t.dashboard.adults} value={getFilterCount('age', '26-40')} icon={Briefcase} colorBg="bg-indigo-500" shadowColor="shadow-indigo-200" onClick={() => selectAge('26-40')} isSelected={filterAge === '26-40'} /><StatCard title={t.dashboard.middleAge} value={getFilterCount('age', '41-60')} icon={ShieldCheck} colorBg="bg-slate-500" shadowColor="shadow-slate-200" onClick={() => selectAge('41-60')} isSelected={filterAge === '41-60'} /><StatCard title={t.dashboard.seniors} value={getFilterCount('age', '60+')} icon={Sun} colorBg="bg-purple-500" shadowColor="shadow-purple-200" onClick={() => selectAge('60+')} isSelected={filterAge === '60+'} /></div></div></div>
+                            <div><h3 className="text-base md:text-lg font-bold text-gray-800 dark:text-white mb-4 md:mb-5 flex items-center gap-2"><span className="w-2 h-6 bg-blue-500 rounded-full inline-block"></span>{t.dashboard.statistics}</h3><div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-4 md:mb-6"><StatCard title={t.dashboard.g12Disciples} value={getDashboardValue('g12')} icon={Users} colorBg="bg-blue-600" shadowColor="shadow-blue-200" onClick={() => selectStat('G12')} isSelected={selectedStat === 'G12'} /><StatCard title={t.dashboard.cellDisciples} value={getDashboardValue('celula')} icon={User} colorBg="bg-emerald-500" shadowColor="shadow-emerald-200" onClick={() => selectStat('CELULA')} isSelected={selectedStat === 'CELULA'} /><StatCard title={t.dashboard.disciples144} value={getDashboardValue('real144')} icon={Network} colorBg="bg-purple-600" shadowColor="shadow-purple-200" onClick={() => selectStat('REAL_144')} isSelected={selectedStat === 'REAL_144'} /><StatCard title={t.dashboard.allDisciples} value={getDashboardValue('total')} icon={Globe} colorBg="bg-pink-600" shadowColor="shadow-pink-200" onClick={() => selectStat('TODOS')} isSelected={selectedStat === 'TODOS'} /></div><div className="grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-6"><StatCard title={t.dashboard.baptized} value={getDashboardValue('batizados')} icon={Book} colorBg="bg-violet-600" shadowColor="shadow-violet-200" onClick={() => selectStat('BATIZADO')} isSelected={selectedStat === 'BATIZADO'} /><StatCard title={t.dashboard.notBaptized} value={getDashboardValue('naoBatizados')} icon={User} colorBg="bg-red-500" shadowColor="shadow-red-200" onClick={() => selectStat('NAO_BATIZADO')} isSelected={selectedStat === 'NAO_BATIZADO'} /></div></div>
+                            <div><h3 className="text-base md:text-lg font-bold text-gray-800 dark:text-white mb-4 md:mb-5 flex items-center gap-2"><span className="w-2 h-6 bg-amber-500 rounded-full inline-block"></span>{t.dashboard.growthTrack}</h3><div className="grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-6 mb-4 md:mb-6"><StatCard title={t.dashboard.uv} value={getDashboardValue('uv')} icon={GraduationCap} colorBg="bg-lime-400" shadowColor="shadow-lime-200" onClick={() => selectStat('UV')} isSelected={selectedStat === 'UV'} /><StatCard title={t.dashboard.notStartedUV} value={getDashboardValue('naoIniciouUV')} icon={Book} colorBg="bg-red-500" shadowColor="shadow-red-200" onClick={() => selectStat('NAO_INICIOU_UV')} isSelected={selectedStat === 'NAO_INICIOU_UV'} /></div><div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6"><StatCard title={t.dashboard.cd1} value={getDashboardValue('cd1')} icon={Award} colorBg="bg-cyan-400" shadowColor="shadow-cyan-200" onClick={() => selectStat('CD1')} isSelected={selectedStat === 'CD1'} /><StatCard title={t.dashboard.cd2} value={getDashboardValue('cd2')} icon={Award} colorBg="bg-blue-600" shadowColor="shadow-blue-200" onClick={() => selectStat('CD2')} isSelected={selectedStat === 'CD2'} /><StatCard title={t.dashboard.cd3} value={getDashboardValue('cd3')} icon={Award} colorBg="bg-blue-900" shadowColor="shadow-blue-300" onClick={() => selectStat('CD3')} isSelected={selectedStat === 'CD3'} /><StatCard title={t.dashboard.notStartedCD} value={getDashboardValue('naoIniciouCD')} icon={Book} colorBg="bg-red-500" shadowColor="shadow-red-200" onClick={() => selectStat('NAO_INICIOU_CD')} isSelected={selectedStat === 'NAO_INICIOU_CD'} /></div></div>
                             <div className="bg-white dark:bg-slate-800 rounded-[1.5rem] md:rounded-[2.5rem] shadow-sm border border-gray-100 dark:border-slate-700 overflow-hidden transition-all duration-500"><div className="p-6 md:p-8 border-b border-gray-100 dark:border-slate-700 flex justify-between items-center"><div className="flex items-center gap-3"><div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-xl text-blue-600 dark:text-blue-400"><ListFilter size={24} /></div><div><h3 className="font-bold text-gray-800 dark:text-white text-base md:text-lg">{selectedStat ? `${t.dashboard.details}: ${selectedStat}` : t.dashboard.memberList}</h3><p className="text-xs text-gray-500 dark:text-gray-400">{shouldShowList ? `${t.dashboard.showingPeople} ${statDetailsList.length} ${t.dashboard.peopleWithFilters}` : t.dashboard.clickCardMessage}</p></div></div>{(selectedStat || filterGender || filterAge || searchTerm) && (<button onClick={() => { setSelectedStat(null); setFilterGender(null); setFilterAge(null); setSearchTerm(''); }} className="text-sm text-gray-400 hover:text-red-500 transition-colors flex items-center gap-1 font-medium"><X size={16} /> {t.dashboard.clearAll}</button>)}</div><div className="overflow-x-auto max-h-[400px] overflow-y-auto">{shouldShowList ? (statDetailsList.length > 0 ? (<table className="w-full text-left"><thead className="bg-gray-50/50 dark:bg-slate-700/50 text-gray-400 text-xs uppercase font-bold tracking-widest sticky top-0 z-10 backdrop-blur-sm"><tr><th className="px-6 py-4">{t.users.name}</th><th className="px-6 py-4">{t.common.position}</th><th className="px-6 py-4">{t.common.supervision}</th><th className="px-6 py-4 text-right">{t.common.action}</th></tr></thead><tbody className="divide-y divide-gray-50 dark:divide-slate-700">{statDetailsList.map((item) => (<tr key={item.id} className="hover:bg-blue-50/10 dark:hover:bg-slate-700/30 transition"><td className="px-6 py-3"><div className="flex items-center gap-3"><AvatarPlaceholder name={item.name} size="sm" /><div><span className="font-medium text-sm text-gray-700 dark:text-gray-200 block">{item.name}</span>{item.nascimento && <span className="text-[10px] text-gray-400">{calculateAge(item.nascimento)} {t.users.years}</span>}</div></div></td><td className="px-6 py-3"><Badge type={item.role}>{item.role}</Badge></td><td className="px-6 py-3 text-sm text-gray-500 dark:text-gray-400">{getSupervisorName(item.discipuladorId || item.pastorId)}</td><td className="px-6 py-3 text-right"><button onClick={() => openForm(item.role, item)} className="p-1.5 text-gray-400 hover:text-blue-500 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700 transition"><Edit size={16} /></button></td></tr>))}</tbody></table>) : (<div className="p-10 text-center text-gray-400"><p>{t.dashboard.noPersonFound}</p></div>)) : (<div className="p-12 flex flex-col items-center justify-center text-gray-400 opacity-60"><Activity size={48} className="mb-4 text-gray-300 dark:text-slate-600" /><p className="text-sm font-medium">{t.dashboard.selectStatMessage}</p></div>)}</div></div>
                         </div>
                     )}
-                    {view === 'analytics' && (<div className="space-y-8 animate-in fade-in duration-500 pb-20"><div className="flex justify-between items-end mb-4"><div><h2 className="text-3xl font-black text-gray-900 dark:text-white tracking-tight">{t.dashboard.visualAnalysis}</h2><p className="text-gray-400 font-medium">{t.dashboard.detailedIndicators}</p></div></div><DashboardCharts data={networkDisciples} filteredData={statDetailsList} /></div>)}
+                    {view === 'analytics' && (<div className="space-y-8 animate-in fade-in duration-500 pb-20"><div className="flex justify-between items-end mb-4"><div><h2 className="text-3xl font-black text-gray-900 dark:text-white tracking-tight">{t.dashboard.visualAnalysis}</h2><p className="text-gray-400 font-medium">{t.dashboard.detailedIndicators}</p></div></div><Suspense fallback={<div className="p-12 text-center text-gray-400 text-sm">Carregando análises...</div>}><DashboardCharts data={networkDisciples} filteredData={statDetailsList} /></Suspense></div>)}
                     {view === 'form' && renderForm()}
-                    {view === 'study_prep' && <PreparacaoEstudo />}
+                    {view === 'study_prep' && (<Suspense fallback={<div className="p-12 text-center text-gray-400 text-sm">Carregando...</div>}><PreparacaoEstudo /></Suspense>)}
                     {(view === 'disciples') && (
                         <div className="space-y-8 animate-in fade-in duration-500 pb-20">
                             <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 mb-8 md:mb-10"><div><h2 className="text-2xl md:text-3xl font-black text-gray-900 dark:text-white tracking-tight">{t.dashboard.discipleManagement}</h2><p className="text-gray-400 font-medium mt-2 text-sm md:text-base">{t.dashboard.manageNetwork}</p></div>{user.role === 'ADM' || user.role === 'PASTOR' || user.role === 'DISCIPULADOR' ? (<button onClick={() => openForm('DISCIPULO')} className="w-full md:w-auto bg-blue-600 hover:bg-blue-700 text-white px-8 py-4 rounded-2xl text-sm font-bold flex items-center justify-center gap-3 shadow-lg shadow-blue-200 transition transform active:scale-95 hover:-translate-y-1"><Plus size={20} /> {t.common.addNew}</button>) : null}</div>
                             <div className="bg-white dark:bg-slate-800 rounded-[1.5rem] md:rounded-[2.5rem] border border-gray-100 dark:border-slate-700 shadow-xl shadow-gray-100/50 dark:shadow-none overflow-hidden">
-                                <div className="p-4 md:p-6 border-b border-gray-100 dark:border-slate-700 flex flex-col md:flex-row items-center gap-4 bg-gray-50/30 dark:bg-slate-700/30"><div className="bg-white dark:bg-slate-700 flex items-center gap-3 px-5 py-4 rounded-2xl border border-gray-100 dark:border-slate-600 flex-1 w-full shadow-sm focus-within:ring-2 focus-within:ring-blue-100 transition-all"><Search size={20} className="text-gray-400" /><input value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} placeholder={t.common.filterByName} className="bg-transparent outline-none text-sm font-medium text-gray-700 dark:text-white w-full placeholder-gray-400" /></div></div>
-                                <div className="hidden md:block overflow-x-auto"><table className="w-full text-left"><thead className="bg-gray-50/50 dark:bg-slate-700/50 text-gray-400 text-xs uppercase font-bold tracking-widest"><tr><th className="px-8 py-6">{t.users.name}</th><th className="px-6 py-6">{t.common.position}</th><th className="px-6 py-6">{t.common.supervision}</th><th className="px-8 py-6 text-right">{t.common.actions}</th></tr></thead><tbody className="divide-y divide-gray-50 dark:divide-slate-700">{disciplesList.map((item) => (<tr key={item.id} className="group hover:bg-blue-50/30 dark:hover:bg-slate-700/50 transition"><td className="px-8 py-5"><div className="flex items-center gap-5"><AvatarPlaceholder name={item.name} size="md" /><div><p className="font-bold text-gray-800 dark:text-white text-sm">{item.name}</p><p className="text-xs text-gray-400">{item.email || t.users.noEmail}</p></div></div></td><td className="px-6 py-5"><Badge type={item.role}>{item.role}</Badge></td><td className="px-6 py-5 text-sm text-gray-500 dark:text-gray-400">{getSupervisorName(item.discipuladorId || item.pastorId)}</td><td className="px-8 py-5 text-right"><div className="flex justify-end gap-2"><button onClick={() => openForm(item.role, item)} className="p-2.5 text-gray-400 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 bg-white dark:bg-slate-700 hover:shadow-md rounded-xl transition"><Edit size={18} /></button></div></td></tr>))}</tbody></table></div>
+                                <div className="p-4 md:p-6 border-b border-gray-100 dark:border-slate-700 flex flex-col md:flex-row items-center gap-4 bg-gray-50/30 dark:bg-slate-700/30"><div className="bg-white dark:bg-slate-700 flex items-center gap-3 px-5 py-3 rounded-2xl border border-gray-100 dark:border-slate-600 w-full md:max-w-sm shadow-sm focus-within:ring-2 focus-within:ring-blue-100 transition-all"><Search size={18} className="text-gray-400 shrink-0" /><input value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} placeholder={t.common.filterByName} className="bg-transparent outline-none text-sm font-medium text-gray-700 dark:text-white w-full placeholder-gray-400" /></div></div>
+                                <div className="hidden md:block overflow-x-auto"><table className="w-full text-left"><thead className="bg-gray-50/50 dark:bg-slate-700/50 text-gray-400 text-xs uppercase font-bold tracking-widest"><tr><th className="px-8 py-6">{t.users.name}</th><th className="px-6 py-6">{t.common.position}</th><th className="px-6 py-6">{t.common.supervision}</th><th className="px-8 py-6 text-right">{t.common.actions}</th></tr></thead><tbody className="divide-y divide-gray-50 dark:divide-slate-700">{disciplesList.map((item) => (<tr key={item.id} className="group hover:bg-blue-50/30 dark:hover:bg-slate-700/50 transition"><td className="px-8 py-5"><div className="flex items-center gap-5"><AvatarPlaceholder name={item.name} size="md" /><div><p className="font-bold text-gray-800 dark:text-white text-sm">{item.name}</p><p className="text-xs text-gray-400">{item.email || t.users.noEmail}</p></div></div></td><td className="px-6 py-5"><Badge type={item.role}>{item.role}</Badge></td><td className="px-6 py-5 text-sm text-gray-500 dark:text-gray-400">{getSupervisorName(item.discipuladorId || item.pastorId)}</td><td className="px-8 py-5 text-right"><div className="flex justify-end gap-2"><button onClick={() => openForm(item.role, item)} className="p-2.5 text-gray-400 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 bg-white dark:bg-slate-700 hover:shadow-md rounded-xl transition" aria-label={`Editar ${item.name}`}><Edit size={18} /></button></div></td></tr>))}</tbody></table></div>
                                 <div className="md:hidden p-4 bg-gray-50/30 dark:bg-slate-900/30">{disciplesList.map((item) => (<MobileUserCard key={item.id} item={item} view={view} openForm={openForm} handleDelete={handleDelete} user={user} getSupervisorName={getSupervisorName} onOpenCell={() => { }} />))}</div>
                             </div>
                         </div>

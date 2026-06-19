@@ -11,6 +11,10 @@ interface AuthContextType {
   login: (email: string, senha: string) => Promise<void>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
+  impersonatedUser: User | null;
+  realUser: User | null;
+  impersonate: (target: User) => void;
+  stopImpersonating: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -20,9 +24,19 @@ interface AuthProviderProps {
 }
 
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(null);
+  const [realUser, setRealUser] = useState<User | null>(null);
+  const [impersonatedUser, setImpersonatedUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const user = impersonatedUser ?? realUser;
+  const setUser = setRealUser;
+
+  const impersonate = (target: User) => {
+    if (realUser?.role !== 'ADM') return;
+    if (target.id === realUser.id) return;
+    setImpersonatedUser(target);
+  };
+  const stopImpersonating = () => setImpersonatedUser(null);
 
   useEffect(() => {
     if (!auth) {
@@ -83,6 +97,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     } finally {
       setToken(null);
       setUser(null);
+      setImpersonatedUser(null);
     }
   };
 
@@ -98,7 +113,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, token, isLoading, login, logout, refreshUser }}>
+    <AuthContext.Provider value={{ user, token, isLoading, login, logout, refreshUser, impersonatedUser, realUser, impersonate, stopImpersonating }}>
       {children}
     </AuthContext.Provider>
   );

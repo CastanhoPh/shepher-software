@@ -100,6 +100,8 @@ export const pt = {
     notCompleted: 'Não Concluiu',
     cdLevels: 'Capacitação de Destino (%)',
     completion: 'Conclusão',
+    byMinistry: 'Pessoas por Ministério',
+    noMinistry: 'Sem ministério',
   },
   
   // Form

@@ -102,6 +102,8 @@ export const es: Translation = {
     notCompleted: 'No Completó',
     cdLevels: 'Capacitación de Destino (%)',
     completion: 'Conclusión',
+    byMinistry: 'Personas por Ministerio',
+    noMinistry: 'Sin ministerio',
   },
   
   // Form

@@ -318,36 +318,26 @@ export class UsuarioService {
 		let criados = 0;
 		const erros: ImportacaoErro[] = [];
 
-		for (let index = 0; index < rows.length; index++) {
+		// Monta os payloads sequencialmente — barato, sem I/O.
+		const tarefas: { linha: number; payload?: any; erro?: string }[] = rows.map((row, index) => {
 			const linha = index + 2;
-			const row = rows[index];
-
 			try {
 				const nome = this.pickString(row, ['nome']);
 				const email = this.pickString(row, ['email']);
 				const genero = this.pickString(row, ['genero', 'sexo'])?.toUpperCase();
 
-				if (!nome || !email || !genero) {
-					throw new Error('Campos obrigatórios: nome, email, genero');
-				}
-
-				if (genero !== 'M' && genero !== 'F') {
-					throw new Error('Genero deve ser M ou F');
-				}
+				if (!nome || !email || !genero) throw new Error('Campos obrigatórios: nome, email, genero');
+				if (genero !== 'M' && genero !== 'F') throw new Error('Genero deve ser M ou F');
 
 				const funcaoRaw = this.pickString(row, ['funcao', 'role'])?.toUpperCase() ?? 'DISCIPULO';
 				const funcao = this.parseFuncao(funcaoRaw);
 
 				let senha = this.pickString(row, ['senha', 'password']);
 				if (!senha) {
-					if (funcao === 'DISCIPULO') {
-						senha = '123456'; // Senha padrão para discípulos que não acessam
-					} else {
-						throw new Error('Senha é obrigatória para Pastores e Líderes');
-					}
+					if (funcao === 'DISCIPULO') senha = '123456';
+					else throw new Error('Senha é obrigatória para Pastores e Líderes');
 				}
 
-				// Define g12 baseado na função: PASTOR e DISCIPULADOR são G12
 				const isG12 = funcao === 'PASTOR' || funcao === 'DISCIPULADOR' || funcao === 'ADM';
 
 				const payload = {
@@ -355,10 +345,7 @@ export class UsuarioService {
 					email,
 					senha,
 					telefone: this.pickString(row, ['telefone', 'contato']) ?? undefined,
-					dataNascimento: this.parseExcelDate(
-						row,
-						['dataNascimento', 'nascimento', 'data_nascimento'],
-					),
+					dataNascimento: this.parseExcelDate(row, ['dataNascimento', 'nascimento', 'data_nascimento']),
 					genero: genero as 'M' | 'F',
 					funcao,
 					supervisorId: this.pickString(row, ['supervisorId', 'pastorId', 'discipuladorId']) ?? undefined,
@@ -373,13 +360,35 @@ export class UsuarioService {
 					capacitacaoDestino: this.pickString(row, ['capacitacaoDestino']),
 					nivelAtividade: this.parseNivelAtividade(this.pick(row, ['nivelAtividade', 'atividade'])),
 				};
-
-				await this.create({ userRole: 'ADM', data: payload });
-				criados++;
+				return { linha, payload };
 			} catch (error: any) {
-				erros.push({ linha, motivo: error?.message ?? 'Erro desconhecido' });
+				return { linha, erro: error?.message ?? 'Erro desconhecido' };
 			}
+		});
+
+		// Coleta erros de validação antes mesmo de criar.
+		tarefas.filter((t) => t.erro).forEach((t) => erros.push({ linha: t.linha, motivo: t.erro! }));
+
+		// Cria em batches paralelos. Batches pequenos evitam colisões em `gerarIdUnicoPorNome`
+		// e mantêm pressão controlada no Firestore/Auth.
+		const BATCH_SIZE = 10;
+		const validas = tarefas.filter((t) => !t.erro);
+		for (let i = 0; i < validas.length; i += BATCH_SIZE) {
+			const batch = validas.slice(i, i + BATCH_SIZE);
+			const resultados = await Promise.allSettled(
+				batch.map((t) => this.create({ userRole: 'ADM', data: t.payload })),
+			);
+			resultados.forEach((r, idx) => {
+				if (r.status === 'fulfilled') {
+					criados++;
+				} else {
+					const motivo = r.reason instanceof Error ? r.reason.message : 'Erro desconhecido';
+					erros.push({ linha: batch[idx].linha, motivo });
+				}
+			});
 		}
+
+		erros.sort((a, b) => a.linha - b.linha);
 
 		return {
 			totalLinhas: rows.length,

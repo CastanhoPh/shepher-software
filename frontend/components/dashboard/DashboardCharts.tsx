@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
-import { 
-    Users, Activity, Heart, User, GraduationCap, Award
+import {
+    Users, Activity, Heart, User, GraduationCap, Award, Church
 } from 'lucide-react';
 import { 
     PieChart, Pie, Cell, 
@@ -60,8 +60,30 @@ export const DashboardCharts: React.FC<DashboardChartsProps> = ({ data }) => {
             { name: 'CD 3', percentage: Number(((data.filter(p => p.capacitacaoDestino === 'Nível 3' || p.capacitacaoDestino === 'Concluído').length / total) * 100).toFixed(1)) }
         ];
 
-        return { avgAge, genderData, baptismData, uvData, cdData };
-    }, [data]);
+        // Pessoas por Ministério — soma de todos os ministérios em que a pessoa participa.
+        const ministerioCounts = new Map<string, number>();
+        data.forEach((p) => {
+            const lista = (p.ministerios && p.ministerios.length > 0)
+                ? p.ministerios
+                : (p.ministerio ? [p.ministerio] : []);
+            const nomes = lista
+                .map((m) => (typeof m === 'string' ? m : (m as any)?.nome))
+                .map((m) => (m ?? '').toString().trim())
+                .filter((m) => m.length > 0);
+            if (nomes.length === 0) {
+                ministerioCounts.set(t.charts.noMinistry, (ministerioCounts.get(t.charts.noMinistry) ?? 0) + 1);
+                return;
+            }
+            nomes.forEach((nome) => {
+                ministerioCounts.set(nome, (ministerioCounts.get(nome) ?? 0) + 1);
+            });
+        });
+        const ministerioData = Array.from(ministerioCounts.entries())
+            .map(([name, value]) => ({ name, value }))
+            .sort((a, b) => b.value - a.value);
+
+        return { avgAge, genderData, baptismData, uvData, cdData, ministerioData };
+    }, [data, t.charts.noMinistry]);
 
     if (!stats) return <div className="p-10 text-center text-gray-500">{t.charts.noDataAvailable}</div>;
 
@@ -213,7 +235,7 @@ export const DashboardCharts: React.FC<DashboardChartsProps> = ({ data }) => {
                                 <CartesianGrid strokeDasharray="3 3" vertical={false} opacity={0.1} />
                                 <XAxis dataKey="name" axisLine={false} tickLine={false} />
                                 <YAxis axisLine={false} tickLine={false} unit="%" />
-                                <Tooltip 
+                                <Tooltip
                                     contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)' }}
                                     cursor={{ fill: 'rgba(59, 130, 246, 0.05)' }}
                                     formatter={(value) => [`${value}%`, t.charts.completion]}
@@ -224,6 +246,38 @@ export const DashboardCharts: React.FC<DashboardChartsProps> = ({ data }) => {
                             </BarChart>
                         </ResponsiveContainer>
                     </div>
+                </div>
+
+                {/* People per Ministry */}
+                <div className="bg-white dark:bg-slate-800 p-8 rounded-[2.5rem] border border-gray-100 dark:border-slate-700 shadow-sm lg:col-span-2">
+                    <h3 className="text-lg font-bold text-gray-800 dark:text-white mb-6 flex items-center gap-2">
+                        <Church className="text-rose-500" size={20} /> {t.charts.byMinistry}
+                    </h3>
+                    {stats.ministerioData.length === 0 ? (
+                        <div className="p-10 text-center text-gray-400 text-sm">{t.charts.noDataAvailable}</div>
+                    ) : (
+                        <div style={{ height: `${Math.max(220, stats.ministerioData.length * 40 + 40)}px` }} className="w-full">
+                            <ResponsiveContainer width="100%" height="100%">
+                                <BarChart
+                                    data={stats.ministerioData}
+                                    layout="vertical"
+                                    margin={{ top: 10, right: 40, left: 20, bottom: 10 }}
+                                >
+                                    <CartesianGrid strokeDasharray="3 3" horizontal={false} opacity={0.1} />
+                                    <XAxis type="number" axisLine={false} tickLine={false} allowDecimals={false} />
+                                    <YAxis type="category" dataKey="name" axisLine={false} tickLine={false} width={140} tick={{ fontSize: 12 }} />
+                                    <Tooltip
+                                        contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)' }}
+                                        cursor={{ fill: 'rgba(244, 63, 94, 0.05)' }}
+                                        formatter={(value: any) => [`${value} ${t.charts.people}`, t.charts.byMinistry]}
+                                    />
+                                    <Bar dataKey="value" fill="#f43f5e" radius={[0, 8, 8, 0]} barSize={22}>
+                                        <LabelList dataKey="value" position="right" style={{ fontSize: '12px', fontWeight: 'bold', fill: '#f43f5e' }} />
+                                    </Bar>
+                                </BarChart>
+                            </ResponsiveContainer>
+                        </div>
+                    )}
                 </div>
             </div>
         </div>

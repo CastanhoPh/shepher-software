@@ -3,6 +3,7 @@ import { AuthController } from '@http/controllers/AuthController';
 import { UsuarioController } from '@http/controllers/UsuarioController';
 import { DashboardController } from '@http/controllers/DashboardController';
 import { authMiddleware } from '@http/middlewares/authMiddleware';
+import { loginRateLimiter } from '@http/middlewares/rateLimiter';
 import multer from 'multer';
 
 const router = Router();
@@ -15,7 +16,7 @@ const upload = multer({
 	limits: { fileSize: 5 * 1024 * 1024 },
 });
 
-router.post('/auth/login', (req, res, next) => authController.login(req, res, next));
+router.post('/auth/login', loginRateLimiter, (req, res, next) => authController.login(req, res, next));
 
 router.use(authMiddleware);
 

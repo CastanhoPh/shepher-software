@@ -102,6 +102,8 @@ export const en: Translation = {
     notCompleted: 'Not Completed',
     cdLevels: 'Destination Training (%)',
     completion: 'Completion',
+    byMinistry: 'People per Ministry',
+    noMinistry: 'No ministry',
   },
   
   // Form

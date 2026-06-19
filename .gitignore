@@ -37,3 +37,7 @@ npm-debug.log*
 *.tar.gz
 *.zip
 **/.env.development
+
+# Database backups (contém dados pessoais)
+backend/backups/
+**/backups/
