@@ -53,7 +53,7 @@ export const usuarioService = {
    * Listar todos os usuários acessíveis para o usuário atual
    */
   async listar(): Promise<User[]> {
-    const response = await api.get<any[]>('/usuarios');
+    const response = await api.get<any[]>('/usuarios?limit=1000');
     // Se a API retornar o objeto paginado { data: [...], total: ... }
     const data = (response.data as any).data || response.data;
     return data.map((u: any) => adaptUserFromFirestore(u.id, u));
