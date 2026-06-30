@@ -23,14 +23,13 @@ export const DashboardCharts: React.FC<DashboardChartsProps> = ({ data }) => {
 
         const total = data.length || 1;
         
-        // Calculate average age
-        const currentYear = new Date().getFullYear();
+        // Calculate average age (idade real pela data completa, consistente com os cards de faixa etária)
         const ages = data.map(p => {
             if (!p.nascimento) return null;
             const birthDate = new Date(p.nascimento);
             if (isNaN(birthDate.getTime())) return null;
-            const birthYear = birthDate.getFullYear();
-            return currentYear - birthYear;
+            const diff = Date.now() - birthDate.getTime();
+            return Math.abs(new Date(diff).getUTCFullYear() - 1970);
         }).filter((age): age is number => age !== null && !isNaN(age));
         
         const avgAge = ages.length > 0 ? (ages.reduce((a, b) => a + b, 0) / ages.length).toFixed(1) : 0;
