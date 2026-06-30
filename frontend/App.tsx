@@ -286,6 +286,15 @@ export default function App() {
         }
     }, [user, isLoading]);
 
+    // Ao "acessar como" outro usuário, vai direto para a visão geral
+    useEffect(() => {
+        if (impersonatedUser) {
+            setView('dashboard');
+            setSelectedLeader(null);
+            setSelectedPastor(null);
+        }
+    }, [impersonatedUser]);
+
     const handleLoginSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoginError('');
