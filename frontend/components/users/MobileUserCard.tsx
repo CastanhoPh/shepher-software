@@ -4,6 +4,7 @@ import {
 } from 'lucide-react';
 import { User, UserId } from '../../types';
 import { AvatarPlaceholder } from '../ui/AvatarPlaceholder';
+import { WhatsAppButton } from '../ui/WhatsAppButton';
 import { useLanguage } from '../../contexts/LanguageContext';
 
 interface MobileUserCardProps {
@@ -39,6 +40,7 @@ export const MobileUserCard: React.FC<MobileUserCardProps> = ({
                     </div>
                 </div>
                 <div className="flex gap-1">
+                    <WhatsAppButton contato={item.contato} nome={item.name} tamanho="sm" />
                     {onOpenCell && ((view === 'leaders' && item.role === 'DISCIPULADOR') || (view === 'pastors' && item.role === 'PASTOR')) && (
                         <button onClick={() => onOpenCell(item)} className="p-2 text-white bg-blue-600 hover:bg-blue-700 rounded-lg shadow-sm">
                             <FolderOpen size={16} />
