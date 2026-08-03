@@ -5,6 +5,7 @@ import {
 import { User, UserId } from '../../types';
 import { AvatarPlaceholder } from '../ui/AvatarPlaceholder';
 import { WhatsAppButton } from '../ui/WhatsAppButton';
+import { PendenciaBadges } from '../ui/PendenciaBadges';
 import { useLanguage } from '../../contexts/LanguageContext';
 
 interface MobileUserCardProps {
@@ -85,6 +86,7 @@ export const MobileUserCard: React.FC<MobileUserCardProps> = ({
                     </div>
                 )}
                 <div className="pt-3 border-t border-gray-50 dark:border-slate-700 flex flex-wrap gap-2 mt-2">
+                    <PendenciaBadges item={item} variante="chip" />
                     {item.g12 && <span className="text-[10px] font-bold text-white bg-purple-500 px-2 py-1 rounded-md">{t.users.g12}</span>}
                     {item.batizado && <span className="text-[10px] font-bold text-blue-600 dark:text-blue-300 bg-blue-50 dark:bg-blue-900/30 px-2 py-1 rounded-md">{t.users.baptized}</span>}
                     {item.capacitacaoDestino && item.capacitacaoDestino !== 'Não Iniciou' && (

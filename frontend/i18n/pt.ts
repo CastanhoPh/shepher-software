@@ -200,6 +200,8 @@ export const pt = {
     member: 'Membro',
     noEmail: 'Sem e-mail',
     noContact: 'Sem contato',
+    missingBirthdate: 'sem nascimento',
+    missingPhone: 'sem telefone',
     sup: 'Sup',
     activityLevel: 'Atividade',
     age: 'Idade',

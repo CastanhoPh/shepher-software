@@ -202,6 +202,8 @@ export const en: Translation = {
     member: 'Member',
     noEmail: 'No email',
     noContact: 'No contact',
+    missingBirthdate: 'no birthdate',
+    missingPhone: 'no phone',
     sup: 'Sup',
     activityLevel: 'Activity',
     age: 'Age',
