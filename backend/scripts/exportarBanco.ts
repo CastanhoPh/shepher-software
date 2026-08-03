@@ -16,9 +16,10 @@
  *   npx ts-node -r tsconfig-paths/register scripts/exportarBanco.ts celulas estudos
  */
 
-import 'dotenv/config';
 import * as fs from 'fs';
 import * as path from 'path';
+// env carrega backend/.env.dev automaticamente
+import { env } from '../src/config/env';
 import { auth, db } from '../src/infrastructure/firebase/client';
 
 const COLECOES_PADRAO = ['usuarios', 'ministerios', 'historicoFuncoes'];
@@ -128,7 +129,7 @@ async function main() {
 
 	const resumo = {
 		exportadoEm: new Date().toISOString(),
-		projeto: process.env.FIREBASE_PROJECT_ID,
+		projeto: env.projectId,
 		contagem,
 	};
 	fs.writeFileSync(path.join(dir, 'resumo.json'), JSON.stringify(resumo, null, 2), 'utf8');

@@ -8,11 +8,27 @@
     ],
     "rewrites": [
       {
+        "source": "/api/**",
+        "function": {
+          "functionId": "api",
+          "region": "us-central1"
+        }
+      },
+      {
         "source": "**",
         "destination": "/index.html"
       }
     ],
     "headers": [
+      {
+        "source": "/api/**",
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "no-store"
+          }
+        ]
+      },
       {
         "source": "**/*.@(js|css|woff|woff2|ttf|otf|eot|png|jpg|jpeg|gif|svg|ico|webp)",
         "headers": [
@@ -32,5 +48,49 @@
         ]
       }
     ]
+  },
+  "functions": {
+    "source": "backend",
+    "codebase": "default",
+    "runtime": "nodejs22",
+    "predeploy": [
+      "npm --prefix backend run build"
+    ],
+    "ignore": [
+      "node_modules",
+      ".git",
+      "firebase-debug.log",
+      "firebase-debug.*.log",
+      "*.local",
+      ".env",
+      ".env.dev",
+      "backups/**",
+      "scripts/**",
+      "templates/**",
+      "*.md",
+      "**/*.map"
+    ]
+  },
+  "firestore": {
+    "rules": "firestore.rules",
+    "indexes": "firestore.indexes.json"
+  },
+  "emulators": {
+    "auth": {
+      "port": 9099
+    },
+    "functions": {
+      "port": 5001
+    },
+    "firestore": {
+      "port": 8080
+    },
+    "hosting": {
+      "port": 5000
+    },
+    "ui": {
+      "enabled": true
+    },
+    "singleProjectMode": true
   }
 }

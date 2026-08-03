@@ -7,6 +7,9 @@ node_modules/
 .env.local
 .env.*.local
 **/.env
+# Credenciais locais do backend (service account) — NUNCA versionar
+.env.dev
+**/.env.dev
 !**/.env.example
 
 # Build outputs

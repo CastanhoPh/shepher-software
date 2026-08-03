@@ -14,7 +14,15 @@ export async function signInWithEmailAndPassword(
   email: string,
   password: string,
 ): Promise<SignInResult> {
-  const url = `https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${env.FIREBASE_API_KEY}`;
+  if (!env.WEB_API_KEY) {
+    throw new AppError(
+      'WEB_API_KEY não configurada — login por email/senha indisponível no servidor.',
+      500,
+      false,
+    );
+  }
+
+  const url = `https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${env.WEB_API_KEY}`;
 
   const response = await fetch(url, {
     method: 'POST',

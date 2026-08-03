@@ -1,0 +1,40 @@
+rules_version = '2';
+
+// Regras de segurança do Firestore.
+//
+// O frontend LÊ o Firestore diretamente (login e dashboard usam o SDK web),
+// mas toda ESCRITA passa pela API em /api/** (Cloud Function). A function usa
+// o Admin SDK, que ignora estas regras — por isso escrita pelo cliente é
+// negada aqui sem quebrar nada: é justamente o que garante que as validações
+// de permissão e hierarquia do backend não possam ser burladas pelo navegador.
+//
+// ATENÇÃO: revise antes de publicar com
+//   firebase deploy --only firestore:rules
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function autenticado() {
+      return request.auth != null;
+    }
+
+    match /usuarios/{usuarioId} {
+      allow read: if autenticado();
+      allow write: if false;
+    }
+
+    match /ministerios/{ministerioId} {
+      allow read: if autenticado();
+      allow write: if false;
+    }
+
+    match /historicoFuncoes/{registroId} {
+      allow read: if autenticado();
+      allow write: if false;
+    }
+
+    // Nada mais é acessível pelo cliente.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

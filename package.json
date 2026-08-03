@@ -13,8 +13,18 @@
     "build": "npm run build --workspace=backend && npm run build --workspace=frontend",
     "build:backend": "npm run build --workspace=backend",
     "build:frontend": "npm run build --workspace=frontend",
+    "typecheck": "npm run typecheck --workspace=backend && npm run typecheck --workspace=frontend",
+    "typecheck:backend": "npm run typecheck --workspace=backend",
+    "typecheck:frontend": "npm run typecheck --workspace=frontend",
     "start": "npm run start --workspace=backend",
-    "install:all": "npm install"
+    "install:all": "npm install",
+    "emulators": "npm run build:backend && firebase emulators:start --only functions,hosting",
+    "deploy": "npm run build && firebase deploy --only functions,hosting",
+    "deploy:backend": "npm run build:backend && firebase deploy --only functions",
+    "deploy:frontend": "npm run build:frontend && firebase deploy --only hosting",
+    "deploy:rules": "firebase deploy --only firestore:rules",
+    "deploy:indexes": "firebase deploy --only firestore:indexes",
+    "logs": "firebase functions:log --only api"
   },
   "devDependencies": {
     "concurrently": "^9.2.1"

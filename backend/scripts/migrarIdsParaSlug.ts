@@ -18,7 +18,8 @@
  *       npx ts-node -r tsconfig-paths/register scripts/migrarIdsParaSlug.ts --apply --skip-auth
  */
 
-import 'dotenv/config';
+// env carrega backend/.env.dev automaticamente
+import '../src/config/env';
 import { auth, db } from '../src/infrastructure/firebase/client';
 
 const APPLY = process.argv.includes('--apply');

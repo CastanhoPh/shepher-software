@@ -1,16 +1,23 @@
-import { initializeApp, getApps, cert } from 'firebase-admin/app';
+import { initializeApp, getApps, cert, applicationDefault } from 'firebase-admin/app';
 import { getFirestore, Timestamp, FieldValue } from 'firebase-admin/firestore';
 import { getAuth } from 'firebase-admin/auth';
 import { env } from '@config/env';
 
 if (!getApps().length) {
-	initializeApp({
-		credential: cert({
-			projectId: env.FIREBASE_PROJECT_ID,
-			privateKey: env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n'),
-			clientEmail: env.FIREBASE_CLIENT_EMAIL,
-		}),
-	});
+	if (env.serviceAccount) {
+		// Execução local: usa a chave de service account do .env.dev
+		initializeApp({
+			credential: cert(env.serviceAccount),
+			projectId: env.serviceAccount.projectId,
+		});
+	} else {
+		// Cloud Functions: a service account do projeto já está disponível como
+		// Application Default Credential — nenhuma chave privada é necessária.
+		initializeApp({
+			credential: applicationDefault(),
+			projectId: env.projectId,
+		});
+	}
 }
 
 export const db = getFirestore();

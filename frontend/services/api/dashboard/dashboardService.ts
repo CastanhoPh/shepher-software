@@ -9,27 +9,9 @@ import {
 } from 'firebase/firestore';
 import { db } from '../../../lib/firebase';
 import { User } from '../../../types';
-
-export interface DashboardEstatisticas {
-  totais: {
-    discipulos: number;
-    g12_diretos: number;
-    celula: number;
-    rede_completa: number;
-  };
-  espirituais: {
-    batizados: number;
-    universidade_vida: number;
-    capacitacao_destino_1: number;
-    capacitacao_destino_2: number;
-    capacitacao_destino_3: number;
-  };
-  demograficos: {
-    homens: number;
-    mulheres: number;
-    faixas_etarias: Record<string, number>;
-  };
-}
+// Definido em ./types — nao duplicar aqui: o index.ts reexporta os dois
+// arquivos e duas declaracoes do mesmo nome geram export ambiguo.
+import type { DashboardEstatisticas } from './types';
 
 /**
  * Serviço de Dashboard (Calculando estatísticas no Frontend para dispensar backend)

@@ -18,14 +18,11 @@
     "baseUrl": "./src",
     "paths": {
       "@/*": ["./*"],
-      "@application/*": ["application/*"],
-      "@domain/*": ["domain/*"],
       "@errors/*": ["errors/*"],
       "@http/*": ["http/*"],
       "@infrastructure/*": ["infrastructure/*"],
       "@repositories/*": ["repositories/*"],
       "@services/*": ["services/*"],
-      "@shared/*": ["shared/*"],
       "@config/*": ["config/*"],
       "@validators/*": ["validators/*"]
     }

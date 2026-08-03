@@ -30,14 +30,18 @@ Para abrir o frontend sem depender do backend e sem login real:
 
 Nesse modo, o app cria um usuario local (ADM) automaticamente e carrega dados mock de `constants.ts`.
 
-O frontend usa `VITE_API_URL=/api` por padrao para funcionar junto com o backend no monolito.
+O frontend usa `VITE_API_URL=/api` — um caminho **relativo**, de proposito.
+Nao existe URL de backend no bundle: frontend e API ficam na mesma origem.
 
 ## Integracao
 
 - O login e feito com Firebase Authentication no cliente.
 - O token do usuario autenticado e enviado automaticamente para a API.
-- Em desenvolvimento, o Vite faz proxy de `/api` e `/health` para o backend.
-- Em producao, o backend serve o build do frontend.
+- Em desenvolvimento, o Vite faz proxy de `/api` e `/health` para o backend local.
+- Em producao, o Firebase Hosting serve este build e reescreve `/api/**` para a
+  Cloud Function do backend (ver `firebase.json` na raiz).
+- Leituras de login e dashboard vao direto ao Firestore pelo SDK web; toda
+  escrita passa pela API.
 
 ## Estrutura principal
 
