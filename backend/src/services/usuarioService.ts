@@ -9,6 +9,32 @@ type Funcao = 'ADM' | 'PASTOR' | 'DISCIPULADOR' | 'DISCIPULO';
 
 type ImportacaoErro = { linha: number; motivo: string };
 
+/** Compara nomes de ministério ignorando acento, caixa e espaços nas pontas. */
+function normalizarNomeMinisterio(nome?: unknown): string {
+	return String(nome ?? '')
+		.normalize('NFD')
+		.replace(/\p{Diacritic}/gu, '')
+		.toLowerCase()
+		.trim();
+}
+
+/**
+ * Sinônimos: nomes diferentes que significam o MESMO ministério.
+ *
+ * Normalizar acento/caixa não resolve estes casos ("diaconia" e "diaconato" são
+ * palavras distintas), então a equivalência precisa ser declarada. Chave =
+ * forma normalizada recebida; valor = nome canônico que deve ser usado.
+ */
+const SINONIMOS_MINISTERIO: Record<string, string> = {
+	diaconia: 'Diaconato',
+	'sala de cura': 'Salas de Cura',
+};
+
+/** Traduz o nome recebido para o canônico, quando houver sinônimo conhecido. */
+function canonizarNomeMinisterio(nome: string): string {
+	return SINONIMOS_MINISTERIO[normalizarNomeMinisterio(nome)] ?? nome;
+}
+
 /**
  * Sincroniza algo no Firebase Auth SEM falhar quando a conta não existe.
  *
@@ -897,14 +923,29 @@ export class UsuarioService {
 			return undefined;
 		}
 
-		const nome = ministerioNome.trim();
+		// Aplica sinônimos antes de procurar: "Diaconia" vira "Diaconato".
+		const nome = canonizarNomeMinisterio(ministerioNome.trim());
 		if (!nome) {
 			return null;
 		}
 
+		// 1) nome exatamente igual (caminho rápido, resolve a maioria dos casos)
 		const existing = await this.usuarioRepository.findMinisterioByNome(nome);
 		if (!existing.empty) {
 			return existing.docs[0].id;
+		}
+
+		// 2) mesmo nome ignorando acento e caixa.
+		//
+		// Sem este passo, uma planilha com "Audio" criava um ministério novo ao
+		// lado de "Áudio" — foi assim que a coleção acumulou 7 grupos de
+		// duplicatas (Video/Vídeo, diaconia/Diaconia, salas de cura/Salas de
+		// Cura...). Reaproveitar o existente evita que o problema volte.
+		const alvo = normalizarNomeMinisterio(nome);
+		const todos = await this.usuarioRepository.listMinisterios();
+		const equivalente = todos.find((m) => normalizarNomeMinisterio(m.nome) === alvo);
+		if (equivalente) {
+			return equivalente.id;
 		}
 
 		return this.usuarioRepository.createMinisterio(nome, FieldValue.serverTimestamp());

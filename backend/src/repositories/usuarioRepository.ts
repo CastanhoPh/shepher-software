@@ -138,6 +138,18 @@ export class UsuarioRepository {
     return db.collection('ministerios').where('nome', '==', nome).limit(1).get();
   }
 
+  /**
+   * Lista id + nome de todos os ministérios.
+   *
+   * O Firestore não sabe comparar texto ignorando acento e caixa, então quem
+   * precisa desse casamento traz a coleção (algumas dezenas de docs) e compara
+   * em memória.
+   */
+  async listMinisterios(): Promise<{ id: string; nome: string }[]> {
+    const snap = await db.collection('ministerios').select('nome').get();
+    return snap.docs.map((d) => ({ id: d.id, nome: String(d.data().nome ?? '') }));
+  }
+
   async createMinisterio(nome: string, dataCadastro: FirebaseFirestore.FieldValue): Promise<string> {
     const ref = db.collection('ministerios').doc();
     await ref.set({
