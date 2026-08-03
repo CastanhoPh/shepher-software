@@ -528,10 +528,13 @@ export class UsuarioService {
 			...new Set(pagedDocs.map((d) => d.data().ministerioId).filter(Boolean) as string[]),
 		];
 
-		const [supervisorMap, ministerioMap, discipulosMap] = await Promise.all([
+		// Não contamos discípulos por usuário aqui de propósito: isso exigia uma
+		// query where-in por cada 30 ids (13 queries sequenciais para a rede
+		// inteira) e nenhum consumidor usava o resultado. Se voltar a ser
+		// necessário, prefira um contador agregado a recalcular na listagem.
+		const [supervisorMap, ministerioMap] = await Promise.all([
 			this.batchFetchMap('usuarios', supervisorIds),
 			this.batchFetchMap('ministerios', ministerioIds),
-			this.batchCountDiscipulos(pagedDocs.map((d) => d.id)),
 		]);
 
 		const usuarios = pagedDocs.map((doc) => {
@@ -540,7 +543,6 @@ export class UsuarioService {
 				...docToData(doc),
 				supervisor: d.supervisorId ? this.supervisorBasic(supervisorMap[d.supervisorId]) : null,
 				ministerio: d.ministerioId ? ministerioMap[d.ministerioId] ?? null : null,
-				_count: { discipulos: discipulosMap[doc.id] ?? 0 },
 			};
 		});
 

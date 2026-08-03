@@ -17,7 +17,7 @@ const PreparacaoEstudo = lazy(() => import('./components/study/PreparacaoEstudo'
 import { MobileUserCard } from './components/users/MobileUserCard';
 import { useAuth } from './contexts/AuthContext';
 import { useLanguage } from './contexts/LanguageContext';
-import { usuarioService, dashboardService, DashboardEstatisticas } from './services/api';
+import { usuarioService } from './services/api';
 import { INITIAL_USERS, INITIAL_DISCIPLES, MINISTERIOS_OPTIONS } from './constants';
 import shepherLogo from './assets/shepher_logo.png';
 import { logger } from './lib/logger';
@@ -78,7 +78,6 @@ export default function App() {
     // Ordenacao compartilhada pelas listas (membros, pastores, lideres, discipulos).
     // Padrao 'posicao' porque e a ordem que a lista de discipulos ja usava.
     const [sortBy, setSortBy] = useState<'nome' | 'posicao' | 'supervisao'>('posicao');
-    const [dashboardStats, setDashboardStats] = useState<DashboardEstatisticas | null>(null);
     const [isImportingExcel, setIsImportingExcel] = useState(false);
     const excelInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -404,23 +403,10 @@ export default function App() {
         }
     };
 
-    const loadDashboardStats = async () => {
-        if (LOCAL_TEST_MODE) {
-            setDashboardStats(null);
-            return;
-        }
-        try {
-            const stats = await dashboardService.obterEstatisticas();
-            setDashboardStats(stats);
-        } catch (error) {
-            logger.error('Erro ao carregar estatísticas do dashboard:', error);
-            setDashboardStats(null);
-        }
-    };
 
     useEffect(() => {
         if (user && !isLoading) {
-            Promise.all([loadUsuarios(), loadDashboardStats()]);
+            loadUsuarios();
             if (view === 'login') {
                 setView('dashboard');
             }
@@ -457,7 +443,7 @@ export default function App() {
         }
         try {
             await usuarioService.deletar(id);
-            await Promise.all([loadUsuarios(), loadDashboardStats()]);
+            await loadUsuarios();
             toast.success(`${nomeAlvo} removido com sucesso.`);
         } catch (error) {
             logger.error('Erro ao deletar usuário:', error);
@@ -511,7 +497,7 @@ export default function App() {
         try {
             setIsImportingExcel(true);
             const resultado = await usuarioService.importarExcel(file);
-            await Promise.all([loadUsuarios(), loadDashboardStats()]);
+            await loadUsuarios();
             const msg = `Importação: ${resultado.criados} de ${resultado.totalLinhas} criados${resultado.erros.length > 0 ? ` (${resultado.erros.length} erros)` : ''}`;
             if (resultado.erros.length === 0) {
                 toast.success(msg);
@@ -578,7 +564,7 @@ export default function App() {
             } else {
                 await usuarioService.criar(payload);
             }
-            await Promise.all([loadUsuarios(), loadDashboardStats()]);
+            await loadUsuarios();
             if (formType === 'PASTOR') setView('pastors');
             else if (formType === 'DISCIPULADOR') setView('leaders');
             else setView('disciples');

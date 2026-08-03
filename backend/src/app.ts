@@ -1,5 +1,6 @@
 import express, { type Express } from 'express';
 import cors from 'cors';
+import compression from 'compression';
 import { env } from '@config/env';
 import { router } from '@http/routes';
 import { errorHandler } from '@http/middlewares/errorHandler';
@@ -25,6 +26,11 @@ export function createApp(): Express {
 
 	// Atrás do Firebase Hosting / Cloud Run existe sempre 1 proxy na frente.
 	app.set('trust proxy', 1);
+
+	// Comprime as respostas. O Firebase Hosting comprime os arquivos estáticos,
+	// mas o que vem da function passa como o Express enviar — a listagem de
+	// usuários trafegava 240 KB de JSON cru.
+	app.use(compression());
 
 	// Como o frontend é servido na mesma origem que a API, o CORS só entra em
 	// cena em dev (Vite em outra porta) ou ao chamar a function direto pela URL.
