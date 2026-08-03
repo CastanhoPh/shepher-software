@@ -9,6 +9,33 @@ type Funcao = 'ADM' | 'PASTOR' | 'DISCIPULADOR' | 'DISCIPULO';
 
 type ImportacaoErro = { linha: number; motivo: string };
 
+/**
+ * Sincroniza algo no Firebase Auth SEM falhar quando a conta não existe.
+ *
+ * Por desenho, só ADM/PASTOR/DISCIPULADOR têm conta no Auth — DISCIPULO é
+ * membro sem login. Então mexer no Auth é "best-effort": se a conta não
+ * existe, o perfil no Firestore ainda deve ser salvo normalmente.
+ *
+ * Sem isso, editar o nome de um membro sem login estourava
+ * "Usuário não encontrado no sistema de autenticação" e a alteração era
+ * perdida inteira.
+ */
+async function sincronizarAuthSeExistir(
+	acao: () => Promise<unknown>,
+	contexto: string,
+): Promise<void> {
+	try {
+		await acao();
+	} catch (error) {
+		const code = (error as { code?: string }).code;
+		if (code === 'auth/user-not-found') {
+			console.info(`ℹ️ ${contexto}: usuário sem conta no Auth, sincronização ignorada.`);
+			return;
+		}
+		throw error;
+	}
+}
+
 export class UsuarioService {
 	private readonly usuarioRepository = new UsuarioRepository();
 
@@ -617,11 +644,16 @@ export class UsuarioService {
 			updateData.dataNascimento = Timestamp.fromDate(new Date(data.dataNascimento));
 		}
 
-		if (data.nome) {
-			await auth.updateUser(id, { displayName: data.nome });
-		}
-
+		// O perfil no Firestore é a fonte da verdade: grava primeiro e só depois
+		// tenta espelhar o nome no Auth (que pode não existir para este usuário).
 		await this.usuarioRepository.updateUsuarioDoc(id, updateData);
+
+		if (data.nome) {
+			await sincronizarAuthSeExistir(
+				() => auth.updateUser(id, { displayName: data.nome }),
+				`atualizar displayName de ${id}`,
+			);
+		}
 
 		const atualizado = await this.usuarioRepository.getUsuarioDocById(id);
 		const d = atualizado.data()!;
@@ -702,13 +734,17 @@ export class UsuarioService {
 
 		await this.checkPermission(userId, userRole, id);
 
-		await Promise.all([
-			this.usuarioRepository.updateUsuarioDoc(id, {
-				ativo: false,
-				dataAtualizacao: FieldValue.serverTimestamp(),
-			}),
-			auth.updateUser(id, { disabled: true }),
-		]);
+		await this.usuarioRepository.updateUsuarioDoc(id, {
+			ativo: false,
+			dataAtualizacao: FieldValue.serverTimestamp(),
+		});
+
+		// Bloquear o login é best-effort: membros sem conta no Auth não têm login
+		// para bloquear, e isso não pode impedir a desativação do perfil.
+		await sincronizarAuthSeExistir(
+			() => auth.updateUser(id, { disabled: true }),
+			`desativar login de ${id}`,
+		);
 	}
 
 	async updateSenha(params: {
@@ -736,7 +772,19 @@ export class UsuarioService {
 			}
 		}
 
-		await auth.updateUser(id, { password: novaSenha });
+		// Aqui a conta no Auth é obrigatória: sem login não existe senha para trocar.
+		try {
+			await auth.updateUser(id, { password: novaSenha });
+		} catch (error) {
+			if ((error as { code?: string }).code === 'auth/user-not-found') {
+				throw new AppError(
+					'Este membro não tem login no sistema, então não possui senha. ' +
+						'Apenas ADM, pastores e discipuladores têm acesso.',
+					400,
+				);
+			}
+			throw error;
+		}
 
 		return { message: 'Senha atualizada com sucesso' };
 	}

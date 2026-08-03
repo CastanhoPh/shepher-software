@@ -67,7 +67,18 @@ export const pt = {
     adults: 'Adultos (26-40)',
     middleAge: 'Meia-Idade (41-60)',
     seniors: 'Seniors (60+)',
-    
+
+    // Situação e gestão da rede
+    networkStatus: 'Situação da Rede',
+    myNetwork: 'Minha Rede de 12',
+    pendingData: 'Dados Pendentes',
+    leftChurchFilter: 'Saíram da Igreja',
+    activeMembers: 'Ativos',
+    inactiveMembers: 'Inativos',
+    ministry: 'Ministério',
+    allMinistries: 'Todos os ministérios',
+    withoutMinistry: 'Sem ministério',
+
     // Detalhes e listagem
     details: 'Detalhes',
     memberList: 'Lista de Membros',

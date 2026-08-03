@@ -69,9 +69,20 @@ export default function App() {
     // Personal Filters State
     const [filterGender, setFilterGender] = useState<string | null>(null);
     const [filterAge, setFilterAge] = useState<string | null>(null);
+    // Ministerio e' um filtro COMBINAVEL: nao zera os outros, para permitir
+    // perguntas como "quem do ministerio X saiu da igreja".
+    const [filterMinisterio, setFilterMinisterio] = useState<string | null>(null);
     const [dashboardStats, setDashboardStats] = useState<DashboardEstatisticas | null>(null);
     const [isImportingExcel, setIsImportingExcel] = useState(false);
     const excelInputRef = useRef<HTMLInputElement | null>(null);
+
+    /** Compara nomes de ministerio ignorando acento, caixa e espacos extras. */
+    const normalizarMinisterio = (nome?: string) =>
+        (nome ?? '').normalize('NFD').replace(/\p{Diacritic}/gu, '').toLowerCase().trim();
+
+    /** Ministerios de um membro, vindo do array ou do campo unico. */
+    const ministeriosDoMembro = (p: UserType): string[] =>
+        p.ministerios?.length ? p.ministerios : (p.ministerio ? [p.ministerio] : []);
 
     const calculateAge = (dob?: string) => {
         if (!dob) return 0;
@@ -129,6 +140,16 @@ export default function App() {
             list = list.filter(p => p.sexo === filterGender);
         }
 
+        if (filterMinisterio) {
+            list = list.filter(p => {
+                const doMembro = ministeriosDoMembro(p);
+                if (filterMinisterio === '__SEM__') return doMembro.length === 0;
+                // filterMinisterio guarda a forma normalizada, entao "Áudio"
+                // tambem encontra quem esta cadastrado como "Audio".
+                return doMembro.some(m => normalizarMinisterio(m) === filterMinisterio);
+            });
+        }
+
         if (filterAge) {
              list = list.filter(p => {
                 const age = calculateAge(p.nascimento);
@@ -142,7 +163,44 @@ export default function App() {
              });
         }
         return list;
-    }, [networkDisciples, searchTerm, filterGender, filterAge]);
+    }, [networkDisciples, searchTerm, filterGender, filterAge, filterMinisterio]);
+
+    /**
+     * Ministerios presentes na rede visivel, agrupados por nome normalizado.
+     *
+     * A colecao 'ministerios' tem nomes duplicados que diferem so por acento ou
+     * caixa (Audio/Áudio, Video/Vídeo, salas de cura/Salas de Cura...). Para o
+     * filtro, esses sao o MESMO ministerio — senao o usuario escolhe "Áudio" e
+     * nao encontra quem esta cadastrado como "Audio". Exibimos a grafia mais
+     * frequente e casamos pela forma normalizada.
+     */
+    const ministeriosDisponiveis = useMemo(() => {
+        const grupos = new Map<string, Map<string, number>>();
+        networkDisciples.forEach(p => {
+            ministeriosDoMembro(p).forEach(m => {
+                const chave = normalizarMinisterio(m);
+                if (!chave) return;
+                const grafias = grupos.get(chave) ?? new Map<string, number>();
+                grafias.set(m, (grafias.get(m) ?? 0) + 1);
+                grupos.set(chave, grafias);
+            });
+        });
+        // Rotulo exibido: a grafia mais usada; em caso de empate, a mais bem
+        // escrita (com acento e iniciando em maiuscula).
+        const temAcento = (s: string) => (s.normalize('NFD').match(/\p{Diacritic}/gu) ?? []).length;
+        const comecaMaiuscula = (s: string) => (/^\p{Lu}/u.test(s) ? 1 : 0);
+        return Array.from(grupos.entries())
+            .map(([chave, grafias]) => {
+                const label = Array.from(grafias.entries()).sort((a, b) =>
+                    b[1] - a[1]
+                    || temAcento(b[0]) - temAcento(a[0])
+                    || comecaMaiuscula(b[0]) - comecaMaiuscula(a[0])
+                    || a[0].localeCompare(b[0], 'pt-BR'),
+                )[0][0];
+                return { chave, label };
+            })
+            .sort((a, b) => a.label.localeCompare(b.label, 'pt-BR'));
+    }, [networkDisciples]);
 
     // Disciples view list: filtered by search and ordered by role (Pastor > Discipulador > Discipulo)
     const disciplesList = useMemo(() => {
@@ -170,6 +228,20 @@ export default function App() {
             case 'CD1': return list.filter(d => d.capacitacaoDestino === 'Nível 1');
             case 'CD2': return list.filter(d => d.capacitacaoDestino === 'Nível 2');
             case 'CD3': return list.filter(d => d.capacitacaoDestino === 'Nível 3' || d.capacitacaoDestino === 'Concluído');
+
+            // Rede de 12: TODOS os membros ligados diretamente a mim, qualquer
+            // funcao. Diferente do card G12, que exige DISCIPULADOR/PASTOR e por
+            // isso esconde os discipulos ligados direto a mim.
+            case 'MINHA_REDE': return list.filter(d => d.discipuladorId === user.id || d.pastorId === user.id);
+
+            // Cadastro incompleto: falta nascimento ou telefone.
+            case 'PENDENTES': return list.filter(d => !d.nascimento || !d.contato);
+
+            // Nivel de Atividade: 1=Saiu da Igreja, 2=Inativo, 3=Neutro, 4=Ativo, 5=Extremamente Ativo
+            case 'SAIU_IGREJA': return list.filter(d => d.atividade === 1);
+            case 'INATIVOS': return list.filter(d => d.atividade === 2);
+            case 'ATIVOS': return list.filter(d => d.atividade >= 4);
+
             default: return list;
         }
     };
@@ -179,8 +251,8 @@ export default function App() {
     }, [selectedStat, baseFilteredList]);
 
     const shouldShowList = useMemo(() => {
-        return selectedStat !== null || filterGender !== null || filterAge !== null || searchTerm !== '';
-    }, [selectedStat, filterGender, filterAge, searchTerm]);
+        return selectedStat !== null || filterGender !== null || filterAge !== null || filterMinisterio !== null || searchTerm !== '';
+    }, [selectedStat, filterGender, filterAge, filterMinisterio, searchTerm]);
 
     const getDashboardValue = (key: string): number => {
         let type = key.toUpperCase();
@@ -190,7 +262,9 @@ export default function App() {
         if (type === 'NAOBATIZADOS') type = 'NAO_BATIZADO';
         if (type === 'NAOINICIOUUV') type = 'NAO_INICIOU_UV';
         if (type === 'NAOINICIOUCD') type = 'NAO_INICIOU_CD';
-        
+        if (type === 'MINHAREDE') type = 'MINHA_REDE';
+        if (type === 'SAIUIGREJA') type = 'SAIU_IGREJA';
+
         return getStatData(type, baseFilteredList).length;
     };
 
@@ -472,7 +546,10 @@ export default function App() {
         } else if (formType === 'DISCIPULADOR') {
             supervisorLabel = 'Pastor Supervisor';
             supervisorField = 'pastorId';
-            if (user.role === 'ADM') supervisorOptions = usersDb.filter(u => u.role === 'PASTOR');
+            // ADM entra na lista: um discipulador pode estar ligado direto a
+            // pastora/pastor principal (ADM), nao so a um PASTOR. Sem isso, quem
+            // esta sob o ADM ficava sem a propria supervisao no dropdown.
+            if (user.role === 'ADM') supervisorOptions = usersDb.filter(u => u.role === 'ADM' || u.role === 'PASTOR');
             else if (user.role === 'PASTOR') supervisorOptions = [user];
         } else if (formType === 'DISCIPULO') {
             supervisorLabel = 'Líder / Discipulador';
@@ -485,6 +562,18 @@ export default function App() {
                 supervisorOptions = [user];
             }
         }
+
+        // Rede de seguranca: garante que a supervisao JA salva esteja sempre na
+        // lista. Se ela faltar, o <select required> nao consegue representar o
+        // valor atual, cai na opcao vazia e o navegador bloqueia o salvamento
+        // pedindo um supervisor — impedindo qualquer edicao do perfil.
+        const supervisorAtualId = editingItem?.[supervisorField as keyof UserType] as string | null | undefined;
+        if (supervisorAtualId && !supervisorOptions.some(op => op.id === supervisorAtualId)) {
+            const atual = usersDb.find(u => u.id === supervisorAtualId)
+                ?? [...usersDb, ...disciplesDb].find(u => u.id === supervisorAtualId);
+            if (atual) supervisorOptions = [{ ...atual, name: `${atual.name} (supervisão atual)` }, ...supervisorOptions];
+        }
+
         return (
             <div className="max-w-2xl mx-auto">
                 <div className="flex items-center justify-between mb-6 md:mb-8"><div><h2 className="text-2xl md:text-3xl font-extrabold text-gray-800 dark:text-white tracking-tight">{isEdit ? 'Editar Registro' : 'Novo Cadastro'}</h2><p className="text-gray-500 dark:text-gray-400 mt-2 font-medium text-sm md:text-base">Preencha as informações do {formType === 'DISCIPULADOR' ? 'Líder' : formType === 'PASTOR' ? 'Pastor' : 'Discípulo'}</p></div><button onClick={() => setView('dashboard')} className="p-3 hover:bg-white hover:shadow-lg rounded-full transition-all text-gray-400 hover:text-gray-600"><X /></button></div>
@@ -685,9 +774,28 @@ export default function App() {
                     {view === 'dashboard' && (
                         <div className="space-y-8 md:space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-700 pb-20 md:pb-0">
                             <div><h3 className="text-base md:text-lg font-bold text-gray-800 dark:text-white mb-4 md:mb-5 flex items-center gap-2"><span className="w-2 h-6 bg-purple-500 rounded-full inline-block"></span>{t.dashboard.personalFilters}</h3><div className="flex flex-col gap-4 md:gap-6"><div className="flex flex-col md:flex-row md:items-center gap-4 md:gap-6"><div className="bg-white dark:bg-slate-700 flex items-center gap-3 px-5 py-3 rounded-2xl border border-gray-100 dark:border-slate-600 w-full md:max-w-sm shadow-sm focus-within:ring-2 focus-within:ring-blue-100 transition-all"><Search size={18} className="text-gray-400 shrink-0" /><input value={searchTerm} onChange={(e) => updateSearchTerm(e.target.value)} placeholder={t.common.filterByName} className="bg-transparent outline-none text-sm font-medium text-gray-700 dark:text-white w-full placeholder-gray-400" /></div><div className="grid grid-cols-2 gap-4 md:gap-6 md:flex-1"><StatCard title={t.dashboard.men} value={getFilterCount('sexo', 'M')} icon={User} colorBg="bg-blue-500" shadowColor="shadow-blue-200" onClick={() => selectGender('M')} isSelected={filterGender === 'M'} /><StatCard title={t.dashboard.women} value={getFilterCount('sexo', 'F')} icon={User} colorBg="bg-pink-500" shadowColor="shadow-pink-200" onClick={() => selectGender('F')} isSelected={filterGender === 'F'} /></div></div><div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 md:gap-6"><StatCard title={t.dashboard.children} value={getFilterCount('age', '0-12')} icon={Smile} colorBg="bg-sky-400" shadowColor="shadow-sky-200" onClick={() => selectAge('0-12')} isSelected={filterAge === '0-12'} /><StatCard title={t.dashboard.teens} value={getFilterCount('age', '13-17')} icon={User} colorBg="bg-orange-400" shadowColor="shadow-orange-200" onClick={() => selectAge('13-17')} isSelected={filterAge === '13-17'} /><StatCard title={t.dashboard.young} value={getFilterCount('age', '18-25')} icon={Sparkles} colorBg="bg-yellow-400" shadowColor="shadow-yellow-200" onClick={() => selectAge('18-25')} isSelected={filterAge === '18-25'} /><StatCard title={t.dashboard.adults} value={getFilterCount('age', '26-40')} icon={Briefcase} colorBg="bg-indigo-500" shadowColor="shadow-indigo-200" onClick={() => selectAge('26-40')} isSelected={filterAge === '26-40'} /><StatCard title={t.dashboard.middleAge} value={getFilterCount('age', '41-60')} icon={ShieldCheck} colorBg="bg-slate-500" shadowColor="shadow-slate-200" onClick={() => selectAge('41-60')} isSelected={filterAge === '41-60'} /><StatCard title={t.dashboard.seniors} value={getFilterCount('age', '60+')} icon={Sun} colorBg="bg-purple-500" shadowColor="shadow-purple-200" onClick={() => selectAge('60+')} isSelected={filterAge === '60+'} /></div></div></div>
+                            <div><h3 className="text-base md:text-lg font-bold text-gray-800 dark:text-white mb-4 md:mb-5 flex items-center gap-2"><span className="w-2 h-6 bg-teal-500 rounded-full inline-block"></span>{t.dashboard.networkStatus}</h3>
+                                <div className="flex flex-col gap-4 md:gap-6">
+                                    <div className="bg-white dark:bg-slate-700 flex items-center gap-3 px-5 py-3 rounded-2xl border border-gray-100 dark:border-slate-600 w-full md:max-w-sm shadow-sm">
+                                        <FolderOpen size={18} className="text-gray-400 shrink-0" />
+                                        <select value={filterMinisterio ?? ''} onChange={(e) => setFilterMinisterio(e.target.value || null)} className="bg-transparent outline-none text-sm font-medium text-gray-700 dark:text-white w-full cursor-pointer">
+                                            <option value="">{t.dashboard.allMinistries}</option>
+                                            <option value="__SEM__">{t.dashboard.withoutMinistry}</option>
+                                            {ministeriosDisponiveis.map(m => <option key={m.chave} value={m.chave}>{m.label}</option>)}
+                                        </select>
+                                    </div>
+                                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 md:gap-6">
+                                        <StatCard title={t.dashboard.myNetwork} value={getDashboardValue('minhaRede')} icon={Network} colorBg="bg-teal-600" shadowColor="shadow-teal-200" onClick={() => selectStat('MINHA_REDE')} isSelected={selectedStat === 'MINHA_REDE'} />
+                                        <StatCard title={t.dashboard.pendingData} value={getDashboardValue('pendentes')} icon={ListFilter} colorBg="bg-amber-500" shadowColor="shadow-amber-200" onClick={() => selectStat('PENDENTES')} isSelected={selectedStat === 'PENDENTES'} />
+                                        <StatCard title={t.dashboard.activeMembers} value={getDashboardValue('ativos')} icon={Activity} colorBg="bg-emerald-600" shadowColor="shadow-emerald-200" onClick={() => selectStat('ATIVOS')} isSelected={selectedStat === 'ATIVOS'} />
+                                        <StatCard title={t.dashboard.inactiveMembers} value={getDashboardValue('inativos')} icon={Moon} colorBg="bg-slate-500" shadowColor="shadow-slate-200" onClick={() => selectStat('INATIVOS')} isSelected={selectedStat === 'INATIVOS'} />
+                                        <StatCard title={t.dashboard.leftChurchFilter} value={getDashboardValue('saiuIgreja')} icon={ArrowDown} colorBg="bg-red-600" shadowColor="shadow-red-200" onClick={() => selectStat('SAIU_IGREJA')} isSelected={selectedStat === 'SAIU_IGREJA'} />
+                                    </div>
+                                </div>
+                            </div>
                             <div><h3 className="text-base md:text-lg font-bold text-gray-800 dark:text-white mb-4 md:mb-5 flex items-center gap-2"><span className="w-2 h-6 bg-blue-500 rounded-full inline-block"></span>{t.dashboard.statistics}</h3><div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-4 md:mb-6"><StatCard title={t.dashboard.g12Disciples} value={getDashboardValue('g12')} icon={Users} colorBg="bg-blue-600" shadowColor="shadow-blue-200" onClick={() => selectStat('G12')} isSelected={selectedStat === 'G12'} /><StatCard title={t.dashboard.cellDisciples} value={getDashboardValue('celula')} icon={User} colorBg="bg-emerald-500" shadowColor="shadow-emerald-200" onClick={() => selectStat('CELULA')} isSelected={selectedStat === 'CELULA'} /><StatCard title={t.dashboard.disciples144} value={getDashboardValue('real144')} icon={Network} colorBg="bg-purple-600" shadowColor="shadow-purple-200" onClick={() => selectStat('REAL_144')} isSelected={selectedStat === 'REAL_144'} /><StatCard title={t.dashboard.allDisciples} value={getDashboardValue('total')} icon={Globe} colorBg="bg-pink-600" shadowColor="shadow-pink-200" onClick={() => selectStat('TODOS')} isSelected={selectedStat === 'TODOS'} /></div><div className="grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-6"><StatCard title={t.dashboard.baptized} value={getDashboardValue('batizados')} icon={Book} colorBg="bg-violet-600" shadowColor="shadow-violet-200" onClick={() => selectStat('BATIZADO')} isSelected={selectedStat === 'BATIZADO'} /><StatCard title={t.dashboard.notBaptized} value={getDashboardValue('naoBatizados')} icon={User} colorBg="bg-red-500" shadowColor="shadow-red-200" onClick={() => selectStat('NAO_BATIZADO')} isSelected={selectedStat === 'NAO_BATIZADO'} /></div></div>
                             <div><h3 className="text-base md:text-lg font-bold text-gray-800 dark:text-white mb-4 md:mb-5 flex items-center gap-2"><span className="w-2 h-6 bg-amber-500 rounded-full inline-block"></span>{t.dashboard.growthTrack}</h3><div className="grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-6 mb-4 md:mb-6"><StatCard title={t.dashboard.uv} value={getDashboardValue('uv')} icon={GraduationCap} colorBg="bg-lime-400" shadowColor="shadow-lime-200" onClick={() => selectStat('UV')} isSelected={selectedStat === 'UV'} /><StatCard title={t.dashboard.notStartedUV} value={getDashboardValue('naoIniciouUV')} icon={Book} colorBg="bg-red-500" shadowColor="shadow-red-200" onClick={() => selectStat('NAO_INICIOU_UV')} isSelected={selectedStat === 'NAO_INICIOU_UV'} /></div><div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6"><StatCard title={t.dashboard.cd1} value={getDashboardValue('cd1')} icon={Award} colorBg="bg-cyan-400" shadowColor="shadow-cyan-200" onClick={() => selectStat('CD1')} isSelected={selectedStat === 'CD1'} /><StatCard title={t.dashboard.cd2} value={getDashboardValue('cd2')} icon={Award} colorBg="bg-blue-600" shadowColor="shadow-blue-200" onClick={() => selectStat('CD2')} isSelected={selectedStat === 'CD2'} /><StatCard title={t.dashboard.cd3} value={getDashboardValue('cd3')} icon={Award} colorBg="bg-blue-900" shadowColor="shadow-blue-300" onClick={() => selectStat('CD3')} isSelected={selectedStat === 'CD3'} /><StatCard title={t.dashboard.notStartedCD} value={getDashboardValue('naoIniciouCD')} icon={Book} colorBg="bg-red-500" shadowColor="shadow-red-200" onClick={() => selectStat('NAO_INICIOU_CD')} isSelected={selectedStat === 'NAO_INICIOU_CD'} /></div></div>
-                            <div className="bg-white dark:bg-slate-800 rounded-[1.5rem] md:rounded-[2.5rem] shadow-sm border border-gray-100 dark:border-slate-700 overflow-hidden transition-all duration-500"><div className="p-6 md:p-8 border-b border-gray-100 dark:border-slate-700 flex justify-between items-center"><div className="flex items-center gap-3"><div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-xl text-blue-600 dark:text-blue-400"><ListFilter size={24} /></div><div><h3 className="font-bold text-gray-800 dark:text-white text-base md:text-lg">{selectedStat ? `${t.dashboard.details}: ${selectedStat}` : t.dashboard.memberList}</h3><p className="text-xs text-gray-500 dark:text-gray-400">{shouldShowList ? `${t.dashboard.showingPeople} ${statDetailsList.length} ${t.dashboard.peopleWithFilters}` : t.dashboard.clickCardMessage}</p></div></div>{(selectedStat || filterGender || filterAge || searchTerm) && (<button onClick={() => { setSelectedStat(null); setFilterGender(null); setFilterAge(null); setSearchTerm(''); }} className="text-sm text-gray-400 hover:text-red-500 transition-colors flex items-center gap-1 font-medium"><X size={16} /> {t.dashboard.clearAll}</button>)}</div><div className="overflow-x-auto max-h-[400px] overflow-y-auto">{shouldShowList ? (statDetailsList.length > 0 ? (<table className="w-full text-left"><thead className="bg-gray-50/50 dark:bg-slate-700/50 text-gray-400 text-xs uppercase font-bold tracking-widest sticky top-0 z-10 backdrop-blur-sm"><tr><th className="px-6 py-4">{t.users.name}</th><th className="px-6 py-4">{t.common.position}</th><th className="px-6 py-4">{t.common.supervision}</th><th className="px-6 py-4 text-right">{t.common.action}</th></tr></thead><tbody className="divide-y divide-gray-50 dark:divide-slate-700">{statDetailsList.map((item) => (<tr key={item.id} className="hover:bg-blue-50/10 dark:hover:bg-slate-700/30 transition"><td className="px-6 py-3"><div className="flex items-center gap-3"><AvatarPlaceholder name={item.name} size="sm" /><div><span className="font-medium text-sm text-gray-700 dark:text-gray-200 block">{item.name}</span>{item.nascimento && <span className="text-[10px] text-gray-400">{calculateAge(item.nascimento)} {t.users.years}</span>}</div></div></td><td className="px-6 py-3"><Badge type={item.role}>{item.role}</Badge></td><td className="px-6 py-3 text-sm text-gray-500 dark:text-gray-400">{getSupervisorName(item.discipuladorId || item.pastorId)}</td><td className="px-6 py-3 text-right"><button onClick={() => openForm(item.role, item)} className="p-1.5 text-gray-400 hover:text-blue-500 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700 transition"><Edit size={16} /></button></td></tr>))}</tbody></table>) : (<div className="p-10 text-center text-gray-400"><p>{t.dashboard.noPersonFound}</p></div>)) : (<div className="p-12 flex flex-col items-center justify-center text-gray-400 opacity-60"><Activity size={48} className="mb-4 text-gray-300 dark:text-slate-600" /><p className="text-sm font-medium">{t.dashboard.selectStatMessage}</p></div>)}</div></div>
+                            <div className="bg-white dark:bg-slate-800 rounded-[1.5rem] md:rounded-[2.5rem] shadow-sm border border-gray-100 dark:border-slate-700 overflow-hidden transition-all duration-500"><div className="p-6 md:p-8 border-b border-gray-100 dark:border-slate-700 flex justify-between items-center"><div className="flex items-center gap-3"><div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-xl text-blue-600 dark:text-blue-400"><ListFilter size={24} /></div><div><h3 className="font-bold text-gray-800 dark:text-white text-base md:text-lg">{selectedStat ? `${t.dashboard.details}: ${selectedStat}` : t.dashboard.memberList}</h3><p className="text-xs text-gray-500 dark:text-gray-400">{shouldShowList ? `${t.dashboard.showingPeople} ${statDetailsList.length} ${t.dashboard.peopleWithFilters}` : t.dashboard.clickCardMessage}</p></div></div>{(selectedStat || filterGender || filterAge || searchTerm) && (<button onClick={() => { setSelectedStat(null); setFilterGender(null); setFilterAge(null); setFilterMinisterio(null); setSearchTerm(''); }} className="text-sm text-gray-400 hover:text-red-500 transition-colors flex items-center gap-1 font-medium"><X size={16} /> {t.dashboard.clearAll}</button>)}</div><div className="overflow-x-auto max-h-[400px] overflow-y-auto">{shouldShowList ? (statDetailsList.length > 0 ? (<table className="w-full text-left"><thead className="bg-gray-50/50 dark:bg-slate-700/50 text-gray-400 text-xs uppercase font-bold tracking-widest sticky top-0 z-10 backdrop-blur-sm"><tr><th className="px-6 py-4">{t.users.name}</th><th className="px-6 py-4">{t.common.position}</th><th className="px-6 py-4">{t.common.supervision}</th><th className="px-6 py-4 text-right">{t.common.action}</th></tr></thead><tbody className="divide-y divide-gray-50 dark:divide-slate-700">{statDetailsList.map((item) => (<tr key={item.id} className="hover:bg-blue-50/10 dark:hover:bg-slate-700/30 transition"><td className="px-6 py-3"><div className="flex items-center gap-3"><AvatarPlaceholder name={item.name} size="sm" /><div><span className="font-medium text-sm text-gray-700 dark:text-gray-200 block">{item.name}</span>{item.nascimento && <span className="text-[10px] text-gray-400">{calculateAge(item.nascimento)} {t.users.years}</span>}</div></div></td><td className="px-6 py-3"><Badge type={item.role}>{item.role}</Badge></td><td className="px-6 py-3 text-sm text-gray-500 dark:text-gray-400">{getSupervisorName(item.discipuladorId || item.pastorId)}</td><td className="px-6 py-3 text-right"><button onClick={() => openForm(item.role, item)} className="p-1.5 text-gray-400 hover:text-blue-500 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700 transition"><Edit size={16} /></button></td></tr>))}</tbody></table>) : (<div className="p-10 text-center text-gray-400"><p>{t.dashboard.noPersonFound}</p></div>)) : (<div className="p-12 flex flex-col items-center justify-center text-gray-400 opacity-60"><Activity size={48} className="mb-4 text-gray-300 dark:text-slate-600" /><p className="text-sm font-medium">{t.dashboard.selectStatMessage}</p></div>)}</div></div>
                         </div>
                     )}
                     {view === 'analytics' && (<div className="space-y-8 animate-in fade-in duration-500 pb-20"><div className="flex justify-between items-end mb-4"><div><h2 className="text-3xl font-black text-gray-900 dark:text-white tracking-tight">{t.dashboard.visualAnalysis}</h2><p className="text-gray-400 font-medium">{t.dashboard.detailedIndicators}</p></div></div><Suspense fallback={<div className="p-12 text-center text-gray-400 text-sm">Carregando análises...</div>}><DashboardCharts data={networkDisciples} /></Suspense></div>)}

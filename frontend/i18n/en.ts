@@ -69,7 +69,18 @@ export const en: Translation = {
     adults: 'Adults (26-40)',
     middleAge: 'Middle Age (41-60)',
     seniors: 'Seniors (60+)',
-    
+
+    // Network status and management
+    networkStatus: 'Network Status',
+    myNetwork: 'My Network of 12',
+    pendingData: 'Missing Data',
+    leftChurchFilter: 'Left the Church',
+    activeMembers: 'Active',
+    inactiveMembers: 'Inactive',
+    ministry: 'Ministry',
+    allMinistries: 'All ministries',
+    withoutMinistry: 'No ministry',
+
     // Details and listing
     details: 'Details',
     memberList: 'Member List',
