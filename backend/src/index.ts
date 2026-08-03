@@ -17,10 +17,16 @@ import { createApp } from './app';
  * então o frontend fala com o backend na MESMA origem — sem URL externa,
  * sem CORS e sem cold start de 20s de servidor gratuito.
  *
- * A região precisa ser us-central1: é a única que o rewrite do Hosting resolve
- * sem configuração extra, e mudá-la exige atualizar o firebase.json também.
+ * REGIÃO: southamerica-east1, a MESMA do banco Firestore.
+ *
+ * Isso não é detalhe: o handler faz várias consultas em sequência e, quando a
+ * function rodava em us-central1 (Iowa) com o banco em São Paulo, cada uma
+ * pagava a ida e volta entre os continentes. Ficar junto do banco — e também
+ * mais perto de quem usa o sistema, no Brasil — corta essa latência.
+ *
+ * Ao mudar daqui, atualize também o `region` do rewrite no firebase.json.
  */
-export const REGION = 'us-central1';
+export const REGION = 'southamerica-east1';
 
 export const api = onRequest(
 	{
