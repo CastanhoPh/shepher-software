@@ -275,6 +275,7 @@ export const es: Translation = {
     fullName: 'Nombre Completo',
     position: 'Posición',
     supervision: 'Supervisión',
+    sortBy: 'Ordenar por',
     actions: 'Acciones',
     action: 'Acción',
     viewing: 'Visualizando',

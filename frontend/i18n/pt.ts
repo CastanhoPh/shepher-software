@@ -273,6 +273,7 @@ export const pt = {
     fullName: 'Nome Completo',
     position: 'Posição',
     supervision: 'Supervisão',
+    sortBy: 'Ordenar por',
     actions: 'Ações',
     action: 'Ação',
     viewing: 'Visualizando',
