@@ -2,33 +2,51 @@ rules_version = '2';
 
 // Regras de segurança do Firestore.
 //
-// O frontend LÊ o Firestore diretamente (login e dashboard usam o SDK web),
-// mas toda ESCRITA passa pela API em /api/** (Cloud Function). A function usa
-// o Admin SDK, que ignora estas regras — por isso escrita pelo cliente é
-// negada aqui sem quebrar nada: é justamente o que garante que as validações
-// de permissão e hierarquia do backend não possam ser burladas pelo navegador.
+// O frontend LÊ o Firestore diretamente (o login busca o perfil pelo SDK web),
+// mas toda ESCRITA passa pela API em /api/** (Cloud Function). A function usa o
+// Admin SDK, que ignora estas regras — por isso escrita pelo cliente é negada
+// aqui sem quebrar nada: é justamente o que garante que as validações de
+// permissão e hierarquia do backend não possam ser burladas pelo navegador.
 //
-// ATENÇÃO: revise antes de publicar com
-//   firebase deploy --only firestore:rules
+// A leitura exige ser LÍDER ATIVO, espelhando o authMiddleware do backend.
+// Não basta estar autenticado: uma conta recém-criada no Firebase Auth, sem
+// documento de membro, não lê nada. Isso importa porque o repositório do
+// projeto é público, e os dados aqui são pessoais (nome, telefone, nascimento)
+// de centenas de pessoas.
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    function autenticado() {
-      return request.auth != null;
+    // Documento de quem está chamando.
+    //
+    // get() dentro das regras NÃO passa pelas regras, então consultar o próprio
+    // perfil funciona mesmo negando a leitura geral. O id do documento é o
+    // mesmo uid do Auth: quem cria líderes é o backend, com
+    // auth.createUser({ uid: <id do documento> }).
+    function meuDoc() {
+      return get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data;
+    }
+
+    // exists() antes de get() de propósito: sem o documento, get() devolve null
+    // e acessar .data derrubaria a avaliação por erro em vez de por regra.
+    function liderAtivo() {
+      return request.auth != null
+        && exists(/databases/$(database)/documents/usuarios/$(request.auth.uid))
+        && meuDoc().ativo != false
+        && meuDoc().funcao in ['ADM', 'PASTOR', 'DISCIPULADOR'];
     }
 
     match /usuarios/{usuarioId} {
-      allow read: if autenticado();
+      allow read: if liderAtivo();
       allow write: if false;
     }
 
     match /ministerios/{ministerioId} {
-      allow read: if autenticado();
+      allow read: if liderAtivo();
       allow write: if false;
     }
 
     match /historicoFuncoes/{registroId} {
-      allow read: if autenticado();
+      allow read: if liderAtivo();
       allow write: if false;
     }
 

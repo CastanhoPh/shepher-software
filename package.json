@@ -22,11 +22,13 @@
     "deploy": "npm run build && firebase deploy --only functions,hosting",
     "deploy:backend": "npm run build:backend && firebase deploy --only functions",
     "deploy:frontend": "npm run build:frontend && firebase deploy --only hosting",
+    "test:rules": "firebase emulators:exec --only firestore \"node firestore.rules.test.cjs\"",
     "deploy:rules": "firebase deploy --only firestore:rules",
     "deploy:indexes": "firebase deploy --only firestore:indexes",
     "logs": "firebase functions:log --only api"
   },
   "devDependencies": {
+    "@firebase/rules-unit-testing": "^5.0.1",
     "concurrently": "^9.2.1"
   }
 }
