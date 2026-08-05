@@ -152,6 +152,7 @@ export const es: Translation = {
   messages: {
     loading: 'Cargando...',
     loginError: 'Email o contraseña incorrectos. Intente nuevamente.',
+    noAccessError: 'Su cuenta no tiene acceso al sistema. Hable con el liderazgo.',
     saveError: 'Error al guardar usuario. Intente nuevamente.',
     emailLabel: 'Email (Acceso de Login)',
     emailPlaceholder: 'email@ejemplo.com',

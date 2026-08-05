@@ -150,6 +150,7 @@ export const pt = {
   messages: {
     loading: 'Carregando...',
     loginError: 'E-mail ou senha incorretos. Tente novamente.',
+    noAccessError: 'Sua conta nao tem acesso ao sistema. Fale com a lideranca.',
     saveError: 'Erro ao salvar usuário. Tente novamente.',
     emailLabel: 'E-mail (Login de Acesso)',
     emailPlaceholder: 'email@exemplo.com',

@@ -152,6 +152,7 @@ export const en: Translation = {
   messages: {
     loading: 'Loading...',
     loginError: 'Incorrect email or password. Please try again.',
+    noAccessError: 'Your account does not have access to the system. Contact leadership.',
     saveError: 'Error saving user. Please try again.',
     emailLabel: 'Email (Login Access)',
     emailPlaceholder: 'email@example.com',

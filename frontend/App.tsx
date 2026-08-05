@@ -431,7 +431,18 @@ export default function App() {
             setLoginPassword('');
         } catch (error: any) {
             logger.error('Erro no login:', error);
-            setLoginError(error.response?.data?.message || t.messages.loginError);
+            // A senha pode estar certa e o acesso ainda ser negado: as regras do
+            // Firestore exigem ser lider ativo. Sem este caso, quem foi
+            // rebaixado a DISCIPULO veria "e-mail ou senha incorretos" e iria
+            // procurar problema na senha.
+            const semAcesso = error?.code === 'permission-denied'
+                || error?.code === 'firestore/permission-denied'
+                || /insufficient permissions/i.test(error?.message ?? '');
+            setLoginError(
+                semAcesso
+                    ? t.messages.noAccessError
+                    : (error.response?.data?.message || t.messages.loginError),
+            );
         }
     };
 
